@@ -79,6 +79,21 @@ def main():
         key="tile"
     )
 
+    filtered_df = df.copy()
+    if selected_faculty != "All":
+        filtered_df = filtered_df[filtered_df['faculty_partners'].fillna("").str.contains(selected_faculty)]
+
+    if selected_focus and "All" not in selected_focus:
+    filtered_df = filtered_df[filtered_df['focus_cleaned'].apply(
+        lambda x: all(f in x for f in selected_focus) if pd.notna(x) else False)]
+
+    if selected_activity != "All":
+        filtered_df = filtered_df[filtered_df['activity_name'] == selected_activity]
+
+    if selected_campus != "All":
+        filtered_df = filtered_df[filtered_df['campus_partners'].fillna("").str.contains(selected_campus)]
+
+
     # Create map
     m = folium.Map(
         location=[df['lat_jittered'].mean(), df['long_jittered'].mean()],
