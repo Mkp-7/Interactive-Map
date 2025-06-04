@@ -7,6 +7,22 @@ from folium.plugins import MarkerCluster
 from streamlit_folium import st_folium
 import random
 
+# Tile options and attribution
+tile_options = {
+    'OpenStreetMap': 'OpenStreetMap',
+    'CartoDB Positron': 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+    'CartoDB Dark Matter': 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    'Esri Satellite': 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+}
+
+tile_attribution = {
+    'OpenStreetMap': '© OpenStreetMap contributors',
+    'CartoDB Positron': '© OpenStreetMap contributors, © CARTO',
+    'CartoDB Dark Matter': '© OpenStreetMap contributors, © CARTO',
+    'Esri Satellite': 'Tiles © Esri, Maxar, Earthstar Geographics'
+}
+
+
 @st.cache_data
 def load_data():
     df = pd.read_excel("Acitivities_cleaned.xlsx")
