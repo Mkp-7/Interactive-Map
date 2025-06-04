@@ -110,11 +110,11 @@ def main():
 
 
     # Create map
-       m = folium.Map(
+    m = folium.Map(
         location=[40.8643, -74.1996],  # Latitude, Longitude
         zoom_start=12,
         tiles=None
-       )
+    )
 
     folium.TileLayer(
         tiles=tile_options[selected_tile],
