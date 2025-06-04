@@ -146,7 +146,7 @@ def main():
         ).add_to(marker_cluster)
 
     st.title("Community Engagement Activities Map")
-    st_data = st_folium(m, width=2000, height=500)
+    st_data = st_folium(m, width=3000, height=500)
 
 if __name__ == "__main__":
     main()
