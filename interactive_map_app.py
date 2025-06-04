@@ -114,7 +114,7 @@ def main():
 
     # Create map
     m = folium.Map(
-        location=[40.2600, -74.1596],  # Latitude, Longitude
+        location=[40.3000, -74.1696],  # Latitude, Longitude
         zoom_start=8,
         tiles=None
     )
