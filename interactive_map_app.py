@@ -6,6 +6,7 @@ import folium
 from folium.plugins import MarkerCluster
 from streamlit_folium import st_folium
 import random
+import streamlit as st
 
 # Tile options and attribution
 tile_options = {
@@ -21,6 +22,8 @@ tile_attribution = {
     'CartoDB Dark Matter': '© OpenStreetMap contributors, © CARTO',
     'Esri Satellite': 'Tiles © Esri, Maxar, Earthstar Geographics'
 }
+
+st.set_page_config(layout="wide")
 
 @st.cache_data
 def load_data():
@@ -146,7 +149,7 @@ def main():
         ).add_to(marker_cluster)
 
     st.title("Community Engagement Activities Map")
-    st_data = st_folium(m, width=3000, height=500)
+    st_data = st_folium(m, width=None, height=500)
 
 if __name__ == "__main__":
     main()
