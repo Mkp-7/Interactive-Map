@@ -110,9 +110,9 @@ def main():
 
 
     # Create map
-    m = folium.Map(
-        location=[df['lat_jittered'].mean(), df['long_jittered'].mean()],
-        zoom_start=9,
+       m = folium.Map(
+        location=[40.8643, -74.1996],  # Latitude, Longitude
+        zoom_start=12,
         tiles=None
     )
 
