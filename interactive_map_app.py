@@ -7,8 +7,6 @@ Original file is located at
     https://colab.research.google.com/drive/1i3rpeYEyaxok8sbY9XhfornP1qIKdvwm
 """
 
-!pip install streamlit folium streamlit-folium openpyxl pandas
-
 # interactive_map_app.py
 
 import streamlit as st
