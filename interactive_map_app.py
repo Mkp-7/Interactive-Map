@@ -84,7 +84,7 @@ def main():
         filtered_df = filtered_df[filtered_df['faculty_partners'].fillna("").str.contains(selected_faculty)]
 
     if selected_focus and "All" not in selected_focus:
-    filtered_df = filtered_df[filtered_df['focus_cleaned'].apply(
+        filtered_df = filtered_df[filtered_df['focus_cleaned'].apply(
         lambda x: all(f in x for f in selected_focus) if pd.notna(x) else False)]
 
     if selected_activity != "All":
