@@ -16,8 +16,7 @@ from folium.plugins import MarkerCluster
 from streamlit_folium import st_folium
 import random
 
-# Load data
-df = pd.read_excel("/content/drive/MyDrive/MSU Collaboratory/Acitivities_cleaned.xlsx")
+df = pd.read_excel("Acitivities_cleaned.xlsx")
 
 # Add jitter
 def add_jitter(val, scale=0.001):
