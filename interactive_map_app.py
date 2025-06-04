@@ -22,7 +22,6 @@ tile_attribution = {
     'Esri Satellite': 'Tiles © Esri, Maxar, Earthstar Geographics'
 }
 
-
 @st.cache_data
 def load_data():
     df = pd.read_excel("Acitivities_cleaned.xlsx")
@@ -147,7 +146,7 @@ def main():
         ).add_to(marker_cluster)
 
     st.title("Community Engagement Activities Map")
-    st_data = st_folium(m, width=900, height=600)
+    st_data = st_folium(m, width=1200, height=700)
 
 if __name__ == "__main__":
     main()
