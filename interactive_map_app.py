@@ -18,21 +18,12 @@ minx, miny, maxx, maxy = nj_boundary.bounds
 center_lat = (miny + maxy) / 2
 center_lon = (minx + maxx) / 2
 
-# --- Example dummy final_df DataFrame ---
-# You must replace this with your actual data loading logic
-import numpy as np
-np.random.seed(42)
-final_df = pd.DataFrame({
-    'lat_jittered': np.random.uniform(miny, maxy, 50),
-    'long_jittered': np.random.uniform(minx, maxx, 50),
-    'faculty_partners': ['John Doe, Jane Smith']*50,
-    'focus_cleaned': ['Focus1, Focus2']*50,
-    'activity_name': ['Activity A']*50,
-    'campus_partners': ['Campus X']*50,
-    'activity_url': ['https://example.com']*50,
-    'community_organizations': ['Org 1']*50,
-    'primary_contact_email': ['contact@example.com']*50
-})
+# --- Load actual Excel data from the same directory ---
+try:
+    final_df = pd.read_excel("Acitivities_cleaned.xlsx")
+except Exception as e:
+    st.error(f"Error loading Excel file: {e}")
+    st.stop()
 
 # --- Helper function to extract unique items from comma-separated strings in a series ---
 def extract_unique(series):
@@ -61,9 +52,9 @@ for _, row in final_df.iterrows():
     if not nj_boundary.contains(point):
         continue  # Skip points outside NJ
 
-    faculty_names = [f.strip() for f in row['faculty_partners'].split(',')] if pd.notna(row['faculty_partners']) else []
-    focus_values = [f.strip() for f in row['focus_cleaned'].split(',')] if pd.notna(row['focus_cleaned']) else []
-    campus_names = [c.strip() for c in row['campus_partners'].split(',')] if pd.notna(row['campus_partners']) else []
+    faculty_names = [f.strip() for f in str(row['faculty_partners']).split(',')] if pd.notna(row['faculty_partners']) else []
+    focus_values = [f.strip() for f in str(row['focus_cleaned']).split(',')] if pd.notna(row['focus_cleaned']) else []
+    campus_names = [c.strip() for c in str(row['campus_partners']).split(',')] if pd.notna(row['campus_partners']) else []
 
     if ((faculty_dropdown == 'All' or faculty_dropdown in faculty_names) and
         (not focus_area_select or all(f in focus_values for f in focus_area_select)) and
@@ -126,7 +117,7 @@ for feature in nj_features:
             icon=folium.DivIcon(html=label_html)
         ).add_to(m)
 
-# Mask outside NJ with white polygon (to make outside appear blank)
+# Mask outside NJ with white polygon
 world = Polygon([
     (-180, -90),
     (-180, 90),
