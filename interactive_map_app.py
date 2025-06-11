@@ -1,38 +1,32 @@
-# interactive_map_app.py
-
 import streamlit as st
-import pandas as pd
 import folium
+import requests
+import pandas as pd
+from shapely.geometry import shape, Point, Polygon, MultiPolygon
 from folium.plugins import MarkerCluster
 from streamlit_folium import st_folium
-import random
-import streamlit as st
 
-# Tile options and attribution
-tile_options = {
-    'OpenStreetMap': 'OpenStreetMap',
-    'CartoDB Positron': 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-    'CartoDB Dark Matter': 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    'Esri Satellite': 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-}
+# --- Load NJ counties (FIPS = '34') ---
+url = "https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json"
+geojson_data = requests.get(url).json()
+nj_features = [f for f in geojson_data['features'] if f['properties']['STATE'] == '34']
 
-tile_attribution = {
-    'OpenStreetMap': '© OpenStreetMap contributors',
-    'CartoDB Positron': '© OpenStreetMap contributors, © CARTO',
-    'CartoDB Dark Matter': '© OpenStreetMap contributors, © CARTO',
-    'Esri Satellite': 'Tiles © Esri, Maxar, Earthstar Geographics'
-}
+nj_polygons = []
+for feature in nj_features:
+    geom = shape(feature['geometry'])
+    nj_polygons.append(geom)
 
-st.set_page_config(layout="wide")
+nj_boundary = MultiPolygon(nj_polygons)
+minx, miny, maxx, maxy = nj_boundary.bounds
+center_lat = (miny + maxy) / 2
+center_lon = (minx + maxx) / 2
 
-@st.cache_data
-def load_data():
-    df = pd.read_excel("Acitivities_cleaned.xlsx")
-    # Add jitter columns once, cache the result
-    df['lat_jittered'] = df['primary_site_lat'].apply(lambda val: val + random.uniform(-0.001, 0.001))
-    df['long_jittered'] = df['primary_site_long'].apply(lambda val: val + random.uniform(-0.001, 0.001))
-    return df
+# --- Assume final_df is loaded here with required columns ---
+# For example: final_df = pd.read_csv('your_data.csv')
+# Replace the below with your actual data loading:
+final_df = ...  # Your actual DataFrame loading here
 
+# --- Helper function to extract unique values from comma-separated string columns ---
 def extract_unique(series):
     items = set()
     for entry in series.dropna():
@@ -40,116 +34,146 @@ def extract_unique(series):
             items.add(item.strip())
     return sorted(items)
 
-def main():
-    df = load_data()
+faculty_list = extract_unique(final_df['faculty_partners'])
+focus_area_list = extract_unique(final_df['focus_cleaned'])
+activity_list = sorted(final_df['activity_name'].dropna().unique())
+campus_partner_list = extract_unique(final_df['campus_partners'])
 
-    faculty_list = extract_unique(df['faculty_partners'])
-    focus_area_list = extract_unique(df['focus_cleaned'])
-    activity_list = sorted(df['activity_name'].dropna().unique())
-    campus_partner_list = extract_unique(df['campus_partners'])
+# --- Streamlit Sidebar Filters ---
+st.sidebar.title("Filters")
+selected_faculty = st.sidebar.selectbox("Faculty:", options=['All'] + faculty_list, index=0)
+selected_focus_areas = st.sidebar.multiselect("Focus Areas:", options=focus_area_list)
+selected_activity = st.sidebar.selectbox("Activity:", options=['All'] + activity_list, index=0)
+selected_campus = st.sidebar.selectbox("Campus:", options=['All'] + campus_partner_list, index=0)
+if st.sidebar.button("Reset Filters"):
+    selected_faculty = 'All'
+    selected_focus_areas = []
+    selected_activity = 'All'
+    selected_campus = 'All'
 
-  # Sidebar filters with reset functionality
-    st.sidebar.title("Filters")
-    
-    # Define default values
-    default_values = {
-        "faculty": "All",
-        "focus": ["All"],
-        "activity": "All",
-        "campus": "All",
-        "tile": "OpenStreetMap"
+# --- Build the map ---
+m = folium.Map(location=[center_lat, center_lon], zoom_start=8, tiles=None)
+
+tile_attribution = {
+    'CartoDB Positron No Labels': '© OpenStreetMap contributors, © CARTO'
+}
+folium.TileLayer(
+    tiles='https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_nolabels/{z}/{x}/{y}.png',
+    attr=tile_attribution['CartoDB Positron No Labels'],
+    name='CartoDB Positron No Labels',
+    control=False
+).add_to(m)
+
+m.fit_bounds([[miny, minx], [maxy, maxx]])
+m.options['maxBounds'] = [[miny, minx], [maxy, maxx]]
+
+# Add NJ county borders
+folium.GeoJson(
+    {
+        "type": "FeatureCollection",
+        "features": nj_features
+    },
+    style_function=lambda x: {
+        "fillColor": "#ffffff00",  # transparent fill
+        "color": "blue",
+        "weight": 2,
     }
-    
-    # Handle reset
-    if "reset" not in st.session_state:
-        st.session_state.reset = False
-    
-    if st.sidebar.button("🔄 Reset Filters"):
-        st.session_state.faculty = default_values["faculty"]
-        st.session_state.focus = default_values["focus"]
-        st.session_state.activity = default_values["activity"]
-        st.session_state.campus = default_values["campus"]
-        st.session_state.tile = default_values["tile"]
-    
-    # Focus area: include "All" option
-    focus_area_list = ["All"] + focus_area_list
-    
-    # Render widgets with session state
-    selected_faculty = st.sidebar.selectbox(
-        "Faculty:", ["All"] + faculty_list,
-        key="faculty"
-    )
-    selected_focus = st.sidebar.multiselect(
-        "Focus Areas:", focus_area_list,
-        default=st.session_state.get("focus", ["All"]),
-        key="focus"
-    )
-    selected_activity = st.sidebar.selectbox(
-        "Activity:", ["All"] + activity_list,
-        key="activity"
-    )
-    selected_campus = st.sidebar.selectbox(
-        "Campus Partner:", ["All"] + campus_partner_list,
-        key="campus"
-    )
-    selected_tile = st.sidebar.selectbox(
-        "Map Style:", list(tile_options.keys()),
-        key="tile"
-    )
+).add_to(m)
 
-    filtered_df = df.copy()
-    if selected_faculty != "All":
-        filtered_df = filtered_df[filtered_df['faculty_partners'].fillna("").str.contains(selected_faculty)]
+# Filter markers first and collect for counting per county
+filtered_points = []
 
-    if selected_focus and "All" not in selected_focus:
-        filtered_df = filtered_df[filtered_df['focus_cleaned'].apply(
-        lambda x: all(f in x for f in selected_focus) if pd.notna(x) else False)]
+for _, row in final_df.iterrows():
+    point = Point(row['long_jittered'], row['lat_jittered'])
+    if not nj_boundary.contains(point):
+        continue  # Skip points outside NJ
 
-    if selected_activity != "All":
-        filtered_df = filtered_df[filtered_df['activity_name'] == selected_activity]
+    faculty_names = [f.strip() for f in row['faculty_partners'].split(',')] if pd.notna(row['faculty_partners']) else []
+    focus_values = [f.strip() for f in row['focus_cleaned'].split(',')] if pd.notna(row['focus_cleaned']) else []
+    campus_names = [c.strip() for c in row['campus_partners'].split(',')] if pd.notna(row['campus_partners']) else []
 
-    if selected_campus != "All":
-        filtered_df = filtered_df[filtered_df['campus_partners'].fillna("").str.contains(selected_campus)]
+    if ((selected_faculty == 'All' or selected_faculty in faculty_names) and
+        (not selected_focus_areas or all(f in focus_values for f in selected_focus_areas)) and
+        (selected_activity == 'All' or selected_activity == row['activity_name']) and
+        (selected_campus == 'All' or selected_campus in campus_names)):
+        filtered_points.append((point, row))
 
+total_markers = len(filtered_points)
 
-    # Create map
-    m = folium.Map(
-        location=[40.3400, -74.1696],  # Latitude, Longitude
-        zoom_start=8,
-        tiles=None
-    )
+# Count markers per county
+county_marker_counts = {f['properties']['NAME']: 0 for f in nj_features}
 
-    folium.TileLayer(
-        tiles=tile_options[selected_tile],
-        attr=tile_attribution[selected_tile],
-        name=selected_tile,
-        control=False
-    ).add_to(m)
+for point, _ in filtered_points:
+    for feature in nj_features:
+        county_name = feature['properties']['NAME']
+        geom = shape(feature['geometry'])
+        if geom.contains(point):
+            county_marker_counts[county_name] += 1
+            break
 
-    marker_cluster = MarkerCluster().add_to(m)
-
-    for _, row in filtered_df.iterrows():
-        popup_html = f"""
-        <div style="width: 300px; font-size: 13px;">
-        <b>Activity:</b> <a href="{row['activity_url']}" target="_blank">{row['activity_name']}</a><br>
-        <b>Faculty:</b> {row['faculty_partners']}<br>
-        <b>Campus Partners:</b> {row['campus_partners']}<br>
-        <b>Community Partners:</b> {row['community_organizations']}<br>
-        <b>Primary Contact:</b> <a href="mailto:{row['primary_contact_email']}">{row['primary_contact_email']}</a>
+# Add county labels with percentage only if percentage > 0
+for feature in nj_features:
+    county_name = feature['properties']['NAME']
+    geom = shape(feature['geometry'])
+    centroid = geom.centroid
+    count = county_marker_counts.get(county_name, 0)
+    percentage = (count / total_markers * 100) if total_markers > 0 else 0
+    if percentage > 0:
+        label_html = f"""
+        <div style="font-size: 12px; font-weight: bold; color: blue;">
+            {county_name}<br>
+            <span style="font-weight: normal; color: black;">{percentage:.1f}%</span>
         </div>
         """
-        folium.CircleMarker(
-            location=[row['lat_jittered'], row['long_jittered']],
-            radius=10,
-            color='red',
-            fill=True,
-            fill_opacity=0.8,
-            popup=popup_html,
-            tooltip=row['activity_name']
-        ).add_to(marker_cluster)
+        folium.map.Marker(
+            [centroid.y, centroid.x],
+            icon=folium.DivIcon(html=label_html)
+        ).add_to(m)
 
-    st.title("Community Engagement Activities Map")
-    st_data = st_folium(m, width=None, height=500)
+# Mask outside NJ
+world = Polygon([
+    (-180, -90),
+    (-180, 90),
+    (180, 90),
+    (180, -90)
+])
+holes = [poly.exterior.coords[:] for poly in nj_boundary.geoms]
+mask_polygon = Polygon(world.exterior.coords, holes=holes)
+mask_geojson = folium.GeoJson(
+    data=mask_polygon.__geo_interface__,
+    style_function=lambda x: {
+        'fillColor': 'white',
+        'color': 'white',
+        'fillOpacity': 1,
+        'weight': 0
+    }
+)
+m.add_child(mask_geojson)
 
-if __name__ == "__main__":
-    main()
+# Marker cluster group
+marker_cluster = MarkerCluster().add_to(m)
+
+# Add filtered markers
+for _, row in filtered_points:
+    popup_html = f"""
+    <div style="width: 300px; font-size: 13px;">
+    <b>Activity:</b> <a href="{row['activity_url']}" target="_blank">{row['activity_name']}</a><br>
+    <b>Faculty:</b> {row['faculty_partners']}<br>
+    <b>Campus Partners:</b> {row['campus_partners']}<br>
+    <b>Community Partners:</b> {row['community_organizations']}<br>
+    <b>Contact:</b> <a href="mailto:{row['primary_contact_email']}">{row['primary_contact_email']}</a>
+    </div>
+    """
+
+    folium.CircleMarker(
+        location=[row['lat_jittered'], row['long_jittered']],
+        radius=7,
+        color='crimson',
+        fill=True,
+        fill_opacity=0.8,
+        popup=popup_html,
+        tooltip=row['activity_name']
+    ).add_to(marker_cluster)
+
+# Display map in Streamlit
+st_data = st_folium(m, width=700, height=600)
