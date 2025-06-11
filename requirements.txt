@@ -1,5 +1,6 @@
 streamlit
-pandas
 folium
-openpyxl
 streamlit-folium
+shapely
+requests
+pandas
