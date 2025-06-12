@@ -26,10 +26,10 @@ def extract_unique(series):
             items.add(item.strip())
     return sorted(items)
 
-faculty_list = extract_unique(df['faculty_partners'])
-focus_area_list = extract_unique(df['focus_cleaned'])
-activity_list = sorted(df['activity_name'].dropna().unique())
-campus_partner_list = extract_unique(df['campus_partners'])
+faculty_list = extract_unique(final_df['faculty_partners'])
+focus_area_list = extract_unique(final_df['focus_cleaned'])
+activity_list = sorted(final_df['activity_name'].dropna().unique())
+campus_partner_list = extract_unique(final_df['campus_partners'])
 
 # Sidebar filters
 st.sidebar.title("Filters")
