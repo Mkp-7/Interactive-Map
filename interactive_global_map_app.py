@@ -56,7 +56,7 @@ tile_attribution = {
 }
 
 # Filter logic
-filtered_df = df.copy()
+filtered_df = final_df.copy()
 if selected_faculty != "All":
     filtered_df = filtered_df[filtered_df['faculty_partners'].str.contains(selected_faculty, na=False)]
 
