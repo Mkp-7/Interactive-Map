@@ -5,20 +5,21 @@ from folium.plugins import MarkerCluster
 from streamlit_folium import st_folium
 import random
 
-# Load data
+# --- Load data ---
 try:
     final_df = pd.read_excel("Acitivities_cleaned.xlsx")
 except Exception as e:
     st.error(f"Error loading Excel file: {e}")
     st.stop()
-# Add jitter
+
+# --- Add jitter to avoid marker overlap ---
 def add_jitter(val, scale=0.001):
     return val + random.uniform(-scale, scale)
 
 final_df['lat_jittered'] = final_df['primary_site_lat'].apply(add_jitter)
 final_df['long_jittered'] = final_df['primary_site_long'].apply(add_jitter)
 
-# Extract unique list
+# --- Extract unique values from multi-value string columns ---
 def extract_unique(series):
     items = set()
     for entry in series.dropna():
@@ -31,31 +32,29 @@ focus_area_list = extract_unique(final_df['focus_cleaned'])
 activity_list = sorted(final_df['activity_name'].dropna().unique())
 campus_partner_list = extract_unique(final_df['campus_partners'])
 
-# Sidebar filters
+# --- Sidebar Filters ---
 st.sidebar.title("Filters")
-
 selected_faculty = st.sidebar.selectbox("Faculty:", ["All"] + faculty_list)
 selected_focus = st.sidebar.multiselect("Focus Areas:", focus_area_list)
 selected_activity = st.sidebar.selectbox("Activity:", ["All"] + activity_list)
 selected_campus = st.sidebar.selectbox("Campus Partner:", ["All"] + campus_partner_list)
 
+# --- Map Style Options ---
 tile_options = {
     'OpenStreetMap': 'OpenStreetMap',
     'CartoDB Positron': 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
     'CartoDB Dark Matter': 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
     'Esri Satellite': 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
 }
-
-selected_tile = st.sidebar.selectbox("Map Style:", list(tile_options.keys()))
-
 tile_attribution = {
     'OpenStreetMap': '© OpenStreetMap contributors',
     'CartoDB Positron': '© OpenStreetMap contributors, © CARTO',
     'CartoDB Dark Matter': '© OpenStreetMap contributors, © CARTO',
     'Esri Satellite': 'Tiles © Esri, Maxar, Earthstar Geographics'
 }
+selected_tile = st.sidebar.selectbox("Map Style:", list(tile_options.keys()))
 
-# Filter logic
+# --- Apply Filters ---
 filtered_df = final_df.copy()
 if selected_faculty != "All":
     filtered_df = filtered_df[filtered_df['faculty_partners'].str.contains(selected_faculty, na=False)]
@@ -70,9 +69,9 @@ if selected_activity != "All":
 if selected_campus != "All":
     filtered_df = filtered_df[filtered_df['campus_partners'].str.contains(selected_campus, na=False)]
 
-# Build map
+# --- Build Folium Map ---
 m = folium.Map(
-    location=[df['lat_jittered'].mean(), df['long_jittered'].mean()],
+    location=[final_df['lat_jittered'].mean(), final_df['long_jittered'].mean()],
     zoom_start=9,
     tiles=None
 )
@@ -106,5 +105,6 @@ for _, row in filtered_df.iterrows():
         tooltip=row['activity_name']
     ).add_to(marker_cluster)
 
+# --- Render in Streamlit ---
 st.title("Community Engagement Activities Map")
 st_data = st_folium(m, width=900, height=600)
