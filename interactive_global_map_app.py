@@ -6,8 +6,11 @@ from streamlit_folium import st_folium
 import random
 
 # Load data
-df = pd.read_excel("/content/drive/MyDrive/MSU Collaboratory/Acitivities_cleaned.xlsx")
-
+try:
+    final_df = pd.read_excel("Acitivities_cleaned.xlsx")
+except Exception as e:
+    st.error(f"Error loading Excel file: {e}")
+    st.stop()
 # Add jitter
 def add_jitter(val, scale=0.001):
     return val + random.uniform(-scale, scale)
