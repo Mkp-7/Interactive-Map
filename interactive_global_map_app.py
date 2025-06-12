@@ -15,8 +15,8 @@ except Exception as e:
 def add_jitter(val, scale=0.001):
     return val + random.uniform(-scale, scale)
 
-df['lat_jittered'] = df['primary_site_lat'].apply(add_jitter)
-df['long_jittered'] = df['primary_site_long'].apply(add_jitter)
+final_df['lat_jittered'] = final_df['primary_site_lat'].apply(add_jitter)
+final_df['long_jittered'] = final_df['primary_site_long'].apply(add_jitter)
 
 # Extract unique list
 def extract_unique(series):
