@@ -20,7 +20,7 @@ center_lon = (minx + maxx) / 2
 
 # --- Load actual Excel data from the same directory ---
 try:
-    final_df = pd.read_excel("Acitivities_cleaned.xlsx")
+    final_df = pd.read_excel("Test_Acitivities_cleaned.xlsx")
 except Exception as e:
     st.error(f"Error loading Excel file: {e}")
     st.stop()
