@@ -51,13 +51,13 @@ campus_partner_list = extract_unique(final_df['campus_partners'])
 st.title("Interactive Map of Activities in NJ")
 
 faculty_dropdown = st.sidebar.selectbox('Faculty:', ['All'] + faculty_list)
-focus_area_multiselect = st.sidebar.multiselect('Focus Areas:', focus_area_list)
+focus_area_dropdown = st.sidebar.selectbox('Focus Area:', ['All'] + focus_area_list)
 activity_dropdown = st.sidebar.selectbox('Activity:', ['All'] + activity_list)
 campus_dropdown = st.sidebar.selectbox('Campus Partner:', ['All'] + campus_partner_list)
 
 if st.sidebar.button('Reset Filters'):
     faculty_dropdown = 'All'
-    focus_area_multiselect = []
+    focus_area_dropdown = 'All'
     activity_dropdown = 'All'
     campus_dropdown = 'All'
 
@@ -72,10 +72,12 @@ for _, row in final_df.iterrows():
     focus_values = [f.strip() for f in str(row['focus_cleaned']).split(',')] if pd.notna(row['focus_cleaned']) else []
     campus_names = [c.strip() for c in str(row['campus_partners']).split(',')] if pd.notna(row['campus_partners']) else []
     
-    if ((faculty_dropdown == 'All' or faculty_dropdown in faculty_names) and
-        (not focus_area_multiselect or all(f in focus_values for f in focus_area_multiselect)) and
-        (activity_dropdown == 'All' or activity_dropdown == row['activity_name']) and
-        (campus_dropdown == 'All' or campus_dropdown in campus_names)):
+    faculty_match = (faculty_dropdown == 'All' or faculty_dropdown in faculty_names)
+    focus_match = (focus_area_dropdown == 'All' or focus_area_dropdown in focus_values)
+    activity_match = (activity_dropdown == 'All' or activity_dropdown == row['activity_name'])
+    campus_match = (campus_dropdown == 'All' or campus_dropdown in campus_names)
+    
+    if faculty_match and focus_match and activity_match and campus_match:
         filtered_points.append((point, row))
 
 total_markers = len(filtered_points)
