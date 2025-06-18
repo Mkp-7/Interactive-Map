@@ -76,7 +76,7 @@ if selected_faculty != "All":
 
 if selected_focus:
     filtered_df = filtered_df[filtered_df['focus_cleaned'].apply(
-        lambda x: all(f in x for f in selected_focus) if pd.notna(x) else False)]
+        lambda x: any(f in x for f in selected_focus) if pd.notna(x) else False)]
 
 if selected_activity != "All":
     filtered_df = filtered_df[filtered_df['activity_name'] == selected_activity]
