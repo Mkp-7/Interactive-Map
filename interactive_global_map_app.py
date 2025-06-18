@@ -38,18 +38,18 @@ except Exception as e:
     st.stop()
 
 # --------------------------
-# Sidebar filters
+# Filters at top (like NJ counties style)
 # --------------------------
 faculty_list = extract_unique(final_df['faculty_partners'])
 focus_area_list = extract_unique(final_df['focus_cleaned'])
 activity_list = sorted(final_df['activity_name'].dropna().unique())
 campus_partner_list = extract_unique(final_df['campus_partners'])
 
-st.sidebar.title("Filters")
-selected_faculty = st.sidebar.selectbox("Faculty:", ["All"] + faculty_list)
-selected_focus = st.sidebar.multiselect("Focus Areas:", focus_area_list, default=focus_area_list)
-selected_activity = st.sidebar.selectbox("Activity:", ["All"] + activity_list)
-selected_campus = st.sidebar.selectbox("Campus Partner:", ["All"] + campus_partner_list)
+# Dropdowns and multiselect inline at top
+selected_faculty = st.selectbox("Faculty:", ["All"] + faculty_list)
+selected_focus = st.multiselect("Focus Areas:", focus_area_list, default=focus_area_list)
+selected_activity = st.selectbox("Activity:", ["All"] + activity_list)
+selected_campus = st.selectbox("Campus Partner:", ["All"] + campus_partner_list)
 
 tile_options = {
     'OpenStreetMap': 'OpenStreetMap',
@@ -65,7 +65,7 @@ tile_attribution = {
     'Esri Satellite': 'Tiles © Esri, Maxar, Earthstar Geographics'
 }
 
-selected_tile = st.sidebar.selectbox("Map Style:", list(tile_options.keys()))
+selected_tile = st.selectbox("Map Style:", list(tile_options.keys()))
 
 # --------------------------
 # Filter data
