@@ -40,7 +40,7 @@ campus_partner_list = extract_unique(final_df['campus_partners'])
 
 # --- Streamlit widgets ---
 faculty_dropdown = st.selectbox('Faculty:', ['All'] + faculty_list)
-focus_area_select = st.multiselect('Focus Areas:', focus_area_list)
+focus_area_select = st.sidebar.selectbox('Focus Area:', ['All'] + focus_area_list)
 activity_dropdown = st.selectbox('Activity:', ['All'] + activity_list)
 campus_dropdown = st.selectbox('Campus:', ['All'] + campus_partner_list)
 
