@@ -47,7 +47,7 @@ campus_partner_list = extract_unique(final_df['campus_partners'])
 
 st.sidebar.title("Filters")
 selected_faculty = st.sidebar.selectbox("Faculty:", ["All"] + faculty_list)
-selected_focus = st.sidebar.multiselect("Focus Areas:", focus_area_list)
+selected_focus = st.sidebar.multiselect("Focus Areas:", focus_area_list, default=focus_area_list)
 selected_activity = st.sidebar.selectbox("Activity:", ["All"] + activity_list)
 selected_campus = st.sidebar.selectbox("Campus Partner:", ["All"] + campus_partner_list)
 
@@ -71,12 +71,13 @@ selected_tile = st.sidebar.selectbox("Map Style:", list(tile_options.keys()))
 # Filter data
 # --------------------------
 filtered_df = final_df.copy()
+
 if selected_faculty != "All":
     filtered_df = filtered_df[filtered_df['faculty_partners'].str.contains(selected_faculty, na=False)]
 
 if selected_focus:
     filtered_df = filtered_df[filtered_df['focus_cleaned'].apply(
-        lambda x: any(f in x for f in selected_focus) if pd.notna(x) else False)]
+        lambda x: any(focus in [v.strip() for v in str(x).split(',')] for focus in selected_focus))]
 
 if selected_activity != "All":
     filtered_df = filtered_df[filtered_df['activity_name'] == selected_activity]
