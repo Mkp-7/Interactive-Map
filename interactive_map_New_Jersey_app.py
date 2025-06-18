@@ -5,6 +5,7 @@ import pandas as pd
 from shapely.geometry import shape, Point, Polygon, MultiPolygon
 from folium.plugins import MarkerCluster
 from streamlit_folium import st_folium
+import random
 
 # --- Load NJ counties (FIPS = '34') GeoJSON ---
 url = "https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json"
@@ -18,14 +19,11 @@ minx, miny, maxx, maxy = nj_boundary.bounds
 center_lat = (miny + maxy) / 2
 center_lon = (minx + maxx) / 2
 
-# --- Load actual Excel data from the same directory ---
-try:
-    final_df = pd.read_excel("Activities_cleaned.xlsx")
-except Exception as e:
-    st.error(f"Error loading Excel file: {e}")
-    st.stop()
+# --- Function to add jitter ---
+def add_jitter(val, scale=0.001):
+    return val + random.uniform(-scale, scale)
 
-# --- Helper function to extract unique items from comma-separated strings in a series ---
+# --- Helper to extract unique items ---
 def extract_unique(series):
     items = set()
     for entry in series.dropna():
@@ -33,31 +31,49 @@ def extract_unique(series):
             items.add(item.strip())
     return sorted(items)
 
+# --- Load data ---
+@st.cache_data
+def load_data():
+    df = pd.read_excel("Activities_cleaned.xlsx")
+    df['lat_jittered'] = df['primary_site_lat'].apply(add_jitter)
+    df['long_jittered'] = df['primary_site_long'].apply(add_jitter)
+    return df
+
+final_df = load_data()
+
+# Extract filter lists
 faculty_list = extract_unique(final_df['faculty_partners'])
 focus_area_list = extract_unique(final_df['focus_cleaned'])
 activity_list = sorted(final_df['activity_name'].dropna().unique())
 campus_partner_list = extract_unique(final_df['campus_partners'])
 
-# --- Streamlit widgets ---
-faculty_dropdown = st.selectbox('Faculty:', ['All'] + faculty_list)
-focus_area_select = st.sidebar.selectbox('Focus Area:', ['All'] + focus_area_list)
-activity_dropdown = st.selectbox('Activity:', ['All'] + activity_list)
-campus_dropdown = st.selectbox('Campus:', ['All'] + campus_partner_list)
+# --- Streamlit UI ---
+st.title("Interactive Map of Activities in NJ")
 
-# --- Filter markers ---
+faculty_dropdown = st.sidebar.selectbox('Faculty:', ['All'] + faculty_list)
+focus_area_multiselect = st.sidebar.multiselect('Focus Areas:', focus_area_list)
+activity_dropdown = st.sidebar.selectbox('Activity:', ['All'] + activity_list)
+campus_dropdown = st.sidebar.selectbox('Campus Partner:', ['All'] + campus_partner_list)
+
+if st.sidebar.button('Reset Filters'):
+    faculty_dropdown = 'All'
+    focus_area_multiselect = []
+    activity_dropdown = 'All'
+    campus_dropdown = 'All'
+
+# --- Filter data points inside NJ and by filters ---
 filtered_points = []
-
 for _, row in final_df.iterrows():
     point = Point(row['long_jittered'], row['lat_jittered'])
     if not nj_boundary.contains(point):
-        continue  # Skip points outside NJ
-
+        continue  # skip outside NJ
+    
     faculty_names = [f.strip() for f in str(row['faculty_partners']).split(',')] if pd.notna(row['faculty_partners']) else []
     focus_values = [f.strip() for f in str(row['focus_cleaned']).split(',')] if pd.notna(row['focus_cleaned']) else []
     campus_names = [c.strip() for c in str(row['campus_partners']).split(',')] if pd.notna(row['campus_partners']) else []
-
+    
     if ((faculty_dropdown == 'All' or faculty_dropdown in faculty_names) and
-        (not focus_area_select or all(f in focus_values for f in focus_area_select)) and
+        (not focus_area_multiselect or all(f in focus_values for f in focus_area_multiselect)) and
         (activity_dropdown == 'All' or activity_dropdown == row['activity_name']) and
         (campus_dropdown == 'All' or campus_dropdown in campus_names)):
         filtered_points.append((point, row))
@@ -77,7 +93,7 @@ for point, _ in filtered_points:
 # --- Create Folium map ---
 m = folium.Map(location=[center_lat, center_lon], zoom_start=8, tiles=None)
 
-# Add tile layer without labels (clean background)
+# Add tile layer (clean base)
 folium.TileLayer(
     tiles='https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_nolabels/{z}/{x}/{y}.png',
     attr='© OpenStreetMap contributors, © CARTO',
@@ -98,7 +114,7 @@ folium.GeoJson(
     }
 ).add_to(m)
 
-# Add county labels with percentage if percentage > 0
+# Add county labels with percentages
 for feature in nj_features:
     county_name = feature['properties']['NAME']
     geom = shape(feature['geometry'])
@@ -136,7 +152,7 @@ folium.GeoJson(
     }
 ).add_to(m)
 
-# Add marker cluster for filtered points
+# Add markers clustered
 marker_cluster = MarkerCluster().add_to(m)
 
 for _, row in filtered_points:
@@ -159,5 +175,5 @@ for _, row in filtered_points:
         tooltip=row['activity_name']
     ).add_to(marker_cluster)
 
-# Render map in Streamlit
+# Show map
 st_data = st_folium(m, width=700, height=600)
