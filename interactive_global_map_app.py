@@ -10,7 +10,7 @@ import random
 # --------------------------
 @st.cache_data
 def load_data():
-    df = pd.read_excel("Test_Acitivities_cleaned.xlsx")
+    df = pd.read_excel("Acitivities_cleaned.xlsx")
     return df
 
 @st.cache_data
