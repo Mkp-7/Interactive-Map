@@ -94,18 +94,14 @@ folium.TileLayer(
 
 marker_cluster = MarkerCluster().add_to(m)
 
+# Add markers with plain faculty display
 for _, row in filtered_df.iterrows():
-    if pd.notna(row['primary_contact']) and pd.notna(row['faculty_url']):
-       faculty_links = f'<a href="{row["faculty_url"]}" target="_blank">{row["primary_contact"]}</a>'
-    elif pd.notna(row['primary_contact']):
-         faculty_links = row['primary_contact']
-    else:
-         faculty_links = 'N/A'
+    faculty_display = row['primary_contact'] if pd.notna(row['primary_contact']) else 'N/A'
 
     popup_html = f"""
     <div style="width: 300px; font-size: 13px;">
     <b>Activity:</b> <a href="{row['activity_url']}" target="_blank">{row['activity_name']}</a><br>
-    <b>Faculty:</b><br>{faculty_links}
+    <b>Faculty:</b> {faculty_display}<br>
     <b>Campus Partners:</b> {row['campus_partners']}<br>
     <b>Community Partners:</b> {row['community_organizations']}<br>
     <b>Primary Contact:</b> <a href="mailto:{row['primary_contact_email']}">{row['primary_contact_email']}</a>
@@ -122,4 +118,5 @@ for _, row in filtered_df.iterrows():
         tooltip=row['activity_name']
     ).add_to(marker_cluster)
 
+# Show map
 st_data = st_folium(m, width=700, height=500)
