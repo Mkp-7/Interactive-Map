@@ -17,7 +17,7 @@ def extract_unique(series):
             items.add(item.strip())
     return sorted(items)
 
-# Load data
+# Load data with caching
 @st.cache_data
 def load_data():
     df = pd.read_excel('Activities_cleaned.xlsx')
@@ -27,7 +27,7 @@ def load_data():
 
 final_df = load_data()
 
-# Extract filter options
+# Extract dropdown options
 faculty_list = extract_unique(final_df['faculty_partners'])
 focus_area_list = extract_unique(final_df['focus_cleaned'])
 activity_list = sorted(final_df['activity_name'].dropna().unique())
@@ -77,7 +77,7 @@ def row_matches(row):
 
 filtered_df = final_df[final_df.apply(row_matches, axis=1)]
 
-# Create map
+# Create folium map
 m = folium.Map(
     location=[final_df['lat_jittered'].mean(), final_df['long_jittered'].mean()],
     zoom_start=9,
@@ -95,7 +95,7 @@ folium.TileLayer(
 marker_cluster = MarkerCluster().add_to(m)
 
 for _, row in filtered_df.iterrows():
-    # Faculty link: show primary_contact as link if faculty_url exists else plain text or N/A
+    # Prepare faculty contact with link if faculty_url exists
     if pd.notna(row['primary_contact']) and pd.notna(row.get('faculty_url')):
         faculty_links = f'<a href="{row["faculty_url"]}" target="_blank">{row["primary_contact"]}</a>'
     elif pd.notna(row['primary_contact']):
@@ -106,7 +106,7 @@ for _, row in filtered_df.iterrows():
     popup_html = f"""
     <div style="width: 300px; font-size: 13px;">
     <b>Activity:</b> <a href="{row['activity_url']}" target="_blank">{row['activity_name']}</a><br>
-    <b>Faculty:</b><br>{faculty_links}
+    <b>Faculty:</b><br>{faculty_links}<br>
     <b>Campus Partners:</b> {row['campus_partners']}<br>
     <b>Community Partners:</b> {row['community_organizations']}<br>
     <b>Primary Contact:</b> <a href="mailto:{row['primary_contact_email']}">{row['primary_contact_email']}</a>
@@ -119,8 +119,9 @@ for _, row in filtered_df.iterrows():
         color='red',
         fill=True,
         fill_opacity=0.8,
-        popup=folium.Popup(popup_html, max_width=300),
+        popup=folium.Popup(popup_html, max_width=300, parse_html=True),
         tooltip=row['activity_name']
     ).add_to(marker_cluster)
 
+# Show map in Streamlit
 st_data = st_folium(m, width=700, height=500)
