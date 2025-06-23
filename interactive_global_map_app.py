@@ -9,7 +9,7 @@ import random
 def add_jitter(val, scale=0.001):
     return val + random.uniform(-scale, scale)
 
-# Extract unique values helper function
+# Extract unique values from comma-separated strings
 def extract_unique(series):
     items = set()
     for entry in series.dropna():
@@ -17,7 +17,7 @@ def extract_unique(series):
             items.add(item.strip())
     return sorted(items)
 
-# Load and preprocess data
+# Load data
 @st.cache_data
 def load_data():
     df = pd.read_excel('Activities_cleaned.xlsx')
@@ -33,9 +33,9 @@ focus_area_list = extract_unique(final_df['focus_cleaned'])
 activity_list = sorted(final_df['activity_name'].dropna().unique())
 campus_partner_list = extract_unique(final_df['campus_partners'])
 
+# Sidebar filters
 st.title("Interactive Map of Activities")
 
-# Sidebar filters
 selected_faculty = st.sidebar.selectbox('Faculty:', ['All'] + faculty_list)
 selected_focus = st.sidebar.selectbox('Focus Area:', ['All'] + focus_area_list)
 selected_activity = st.sidebar.selectbox('Activity:', ['All'] + activity_list)
@@ -62,7 +62,7 @@ if st.sidebar.button('Reset Filters'):
     selected_campus = 'All'
     selected_tile = 'OpenStreetMap'
 
-# Filter data function
+# Filtering logic
 def row_matches(row):
     faculty_names = extract_unique(pd.Series(row['faculty_partners'])) if pd.notna(row['faculty_partners']) else []
     campus_names = extract_unique(pd.Series(row['campus_partners'])) if pd.notna(row['campus_partners']) else []
@@ -95,32 +95,35 @@ folium.TileLayer(
 marker_cluster = MarkerCluster().add_to(m)
 
 for _, row in filtered_df.iterrows():
-    if pd.notna(row['primary_contact']) and pd.notna(row.get('faculty_url')):
-        faculty_links = f'<a href="{row["faculty_url"]}" target="_blank">{row["primary_contact"]}</a>'
-    elif pd.notna(row['primary_contact']):
-        faculty_links = row['primary_contact']
+    # Prepare Primary Contact with faculty URL if available
+    faculty_url = str(row.get('faculty_url', '')).strip()
+    primary_contact = str(row.get('primary_contact', '')).strip()
+
+    if primary_contact and faculty_url and faculty_url.lower() != 'nan':
+        primary_contact_html = f'<a href="{faculty_url}" target="_blank">{primary_contact}</a>'
+    elif primary_contact:
+        primary_contact_html = primary_contact
     else:
-        faculty_links = 'N/A'
+        primary_contact_html = 'N/A'
 
     popup_html = f"""
     <div style="width: 300px; font-size: 13px;">
     <b>Activity:</b> <a href="{row['activity_url']}" target="_blank">{row['activity_name']}</a><br>
-    <b>Faculty:</b><br>{faculty_links}<br>
+    <b>Faculty:</b><br>{row['faculty_partners']}<br>
     <b>Campus Partners:</b> {row['campus_partners']}<br>
     <b>Community Partners:</b> {row['community_organizations']}<br>
-    <b>Primary Contact:</b> <a href="mailto:{row['primary_contact_email']}">{row['primary_contact_email']}</a>
+    <b>Primary Contact:</b> {primary_contact_html}
     </div>
     """
 
     folium.CircleMarker(
         location=[row['lat_jittered'], row['long_jittered']],
-        radius=10,
+        radius=7,
         color='red',
         fill=True,
         fill_opacity=0.8,
-        popup=folium.Popup(popup_html, max_width=300, parse_html=True),
+        popup=folium.Popup(popup_html, max_width=300),
         tooltip=row['activity_name']
     ).add_to(marker_cluster)
 
-# Display the map
 st_data = st_folium(m, width=700, height=500)
