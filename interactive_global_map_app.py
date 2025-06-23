@@ -17,7 +17,7 @@ def extract_unique(series):
             items.add(item.strip())
     return sorted(items)
 
-# Load data with caching
+# Load and preprocess data
 @st.cache_data
 def load_data():
     df = pd.read_excel('Activities_cleaned.xlsx')
@@ -95,7 +95,6 @@ folium.TileLayer(
 marker_cluster = MarkerCluster().add_to(m)
 
 for _, row in filtered_df.iterrows():
-    # Prepare faculty contact with link if faculty_url exists
     if pd.notna(row['primary_contact']) and pd.notna(row.get('faculty_url')):
         faculty_links = f'<a href="{row["faculty_url"]}" target="_blank">{row["primary_contact"]}</a>'
     elif pd.notna(row['primary_contact']):
@@ -115,7 +114,7 @@ for _, row in filtered_df.iterrows():
 
     folium.CircleMarker(
         location=[row['lat_jittered'], row['long_jittered']],
-        radius=7,
+        radius=10,
         color='red',
         fill=True,
         fill_opacity=0.8,
@@ -123,5 +122,5 @@ for _, row in filtered_df.iterrows():
         tooltip=row['activity_name']
     ).add_to(marker_cluster)
 
-# Show map in Streamlit
+# Display the map
 st_data = st_folium(m, width=700, height=500)
