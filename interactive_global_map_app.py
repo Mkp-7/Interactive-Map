@@ -95,15 +95,12 @@ folium.TileLayer(
 marker_cluster = MarkerCluster().add_to(m)
 
 for _, row in filtered_df.iterrows():
-    faculty_links = ''
-    if pd.notna(row['faculty_partners']):
-        for name in row['faculty_partners'].split(','):
-            name_clean = name.strip()
-            name_url = name_clean.replace(' ', '_')
-            full_url = f"https://he.cecollaboratory.com/collaboratory/4EC88LAI2/activities/{row['activity_url']}?facname={name_url}"
-            faculty_links += f'<a href="{full_url}" target="_blank">{name_clean}</a><br>'
+    if pd.notna(row['primary_contact']) and pd.notna(row['faculty_url']):
+       faculty_links = f'<a href="{row["faculty_url"]}" target="_blank">{row["primary_contact"]}</a>'
+    elif pd.notna(row['primary_contact']):
+         faculty_links = row['primary_contact']
     else:
-        faculty_links = 'N/A'
+         faculty_links = 'N/A'
 
     popup_html = f"""
     <div style="width: 300px; font-size: 13px;">
