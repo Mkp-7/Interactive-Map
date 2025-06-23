@@ -17,7 +17,7 @@ def extract_unique(series):
             items.add(item.strip())
     return sorted(items)
 
-# Load data
+# Load data with caching
 @st.cache_data
 def load_data():
     df = pd.read_excel('Activities_cleaned.xlsx')
@@ -35,7 +35,7 @@ campus_partner_list = extract_unique(final_df['campus_partners'])
 
 st.title("Interactive Map of Activities")
 
-# Sidebar filters
+# Sidebar filters (default to All)
 selected_faculty = st.sidebar.selectbox('Faculty:', ['All'] + faculty_list)
 selected_focus = st.sidebar.selectbox('Focus Area:', ['All'] + focus_area_list)
 selected_activity = st.sidebar.selectbox('Activity:', ['All'] + activity_list)
@@ -53,7 +53,7 @@ tile_attribution = {
     'CartoDB Dark Matter': '© OpenStreetMap contributors, © CARTO',
     'Esri Satellite': 'Tiles © Esri, Maxar, Earthstar Geographics, and the GIS User Community'
 }
-selected_tile = st.sidebar.selectbox('Map Style:', list(tile_options.keys()))
+selected_tile = st.sidebar.selectbox('Map Style:', list(tile_options.keys()), index=0)
 
 if st.sidebar.button('Reset Filters'):
     selected_faculty = 'All'
@@ -62,7 +62,7 @@ if st.sidebar.button('Reset Filters'):
     selected_campus = 'All'
     selected_tile = 'OpenStreetMap'
 
-# Filter data
+# Filtering function
 def row_matches(row):
     faculty_names = extract_unique(pd.Series(row['faculty_partners'])) if pd.notna(row['faculty_partners']) else []
     campus_names = extract_unique(pd.Series(row['campus_partners'])) if pd.notna(row['campus_partners']) else []
@@ -95,12 +95,13 @@ folium.TileLayer(
 marker_cluster = MarkerCluster().add_to(m)
 
 for _, row in filtered_df.iterrows():
+    # Faculty link or just name
     if pd.notna(row['primary_contact']) and pd.notna(row['faculty_url']):
-       faculty_links = f'<a href="{row["faculty_url"]}" target="_blank">{row["primary_contact"]}</a>'
+        faculty_links = f'<a href="{row["faculty_url"]}" target="_blank">{row["primary_contact"]}</a>'
     elif pd.notna(row['primary_contact']):
-         faculty_links = row['primary_contact']
+        faculty_links = row['primary_contact']
     else:
-         faculty_links = 'N/A'
+        faculty_links = 'N/A'
 
     popup_html = f"""
     <div style="width: 300px; font-size: 13px;">
@@ -114,7 +115,7 @@ for _, row in filtered_df.iterrows():
 
     folium.CircleMarker(
         location=[row['lat_jittered'], row['long_jittered']],
-        radius=7,
+        radius=10,
         color='red',
         fill=True,
         fill_opacity=0.8,
@@ -122,4 +123,5 @@ for _, row in filtered_df.iterrows():
         tooltip=row['activity_name']
     ).add_to(marker_cluster)
 
+# Show map in Streamlit
 st_data = st_folium(m, width=700, height=500)
