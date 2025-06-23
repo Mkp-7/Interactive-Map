@@ -96,7 +96,7 @@ marker_cluster = MarkerCluster().add_to(m)
 
 # Add markers with plain faculty display
 for _, row in filtered_df.iterrows():
-    faculty_display = row['primary_contact'] if pd.notna(row['primary_contact']) else 'N/A'
+    faculty_display = row['faculty_partners'] if pd.notna(row['faculty_partners']) else 'N/A'
 
     popup_html = f"""
     <div style="width: 300px; font-size: 13px;">
