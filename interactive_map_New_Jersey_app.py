@@ -7,6 +7,8 @@ from folium.plugins import MarkerCluster
 from streamlit_folium import st_folium
 import random
 
+st.set_page_config(page_title="Interactive Map", layout="wide", initial_sidebar_state="expanded")
+
 # --- Load NJ counties (FIPS = '34') GeoJSON ---
 url = "https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json"
 geojson_data = requests.get(url).json()
