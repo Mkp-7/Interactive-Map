@@ -6,6 +6,7 @@ from streamlit_folium import st_folium
 import random
 
 st.set_page_config(page_title="Interactive Map", layout="wide", initial_sidebar_state="expanded")
+
 # Function to add jitter to coordinates
 def add_jitter(val, scale=0.001):
     return val + random.uniform(-scale, scale)
