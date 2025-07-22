@@ -7,6 +7,7 @@ from folium.plugins import MarkerCluster
 from shapely.ops import unary_union
 from streamlit_folium import st_folium
 import random
+import json
 
 st.set_page_config(layout="wide")
 
@@ -17,10 +18,10 @@ def load_data():
 
 @st.cache_data(show_spinner=True)
 def load_geojson():
-    url = "https://maps.nj.gov/arcgis/rest/services/Framework/Government_Boundaries/MapServer/2/query"
-    params = {"where": "1=1", "outFields": "NAME,COUNTY", "f": "geojson"}
-    resp = requests.get(url, params=params)
-    return resp.json()
+    with open("nj_municipalities.geojson", "r") as f:
+        municipal_geo = json.load(f)
+    return municipal_geo
+
 
 def joyful_color_palette(n):
     if n == 0:
