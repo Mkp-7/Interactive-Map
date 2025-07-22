@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import requests
 import folium
 from shapely.geometry import shape, Point, Polygon, MultiPolygon
 from folium.plugins import MarkerCluster
@@ -13,15 +12,12 @@ st.set_page_config(layout="wide")
 
 @st.cache_data(show_spinner=True)
 def load_data():
-    df = pd.read_excel('Activities_cleaned.xlsx', engine='openpyxl')
-    return df
+    return pd.read_excel('Activities_cleaned.xlsx', engine='openpyxl')
 
 @st.cache_data(show_spinner=True)
 def load_geojson():
     with open("nj_municipalities.geojson", "r") as f:
-        municipal_geo = json.load(f)
-    return municipal_geo
-
+        return json.load(f)
 
 def joyful_color_palette(n):
     if n == 0:
@@ -44,41 +40,11 @@ def build_nj_boundary(muni_features):
             all_polygons.extend(geom.geoms)
     return MultiPolygon(all_polygons)
 
-def main():
-    st.title("Interactive NJ Map with Activities")
-
-    # Load data
-    final_df = load_data()
-    municipal_geo = load_geojson()
-    muni_features = municipal_geo["features"]
-
-    # NJ boundary
-    nj_boundary = build_nj_boundary(muni_features)
+@st.cache_resource(show_spinner=False)
+def build_base_map(muni_features, nj_boundary, county_color_map, municipality_color_map, color_theme):
     minx, miny, maxx, maxy = nj_boundary.bounds
-    center_lat, center_lon = (miny + maxy)/2, (minx + maxx)/2
+    center_lat, center_lon = (miny + maxy) / 2, (minx + maxx) / 2
 
-    # Counties and municipalities
-    counties = sorted({feat["properties"]["COUNTY"] for feat in muni_features})
-    municipalities = sorted({feat["properties"]["NAME"] for feat in muni_features})
-
-    county_color_map = dict(zip(counties, joyful_color_palette(len(counties))))
-    municipality_color_map = dict(zip(municipalities, joyful_color_palette(len(municipalities))))
-
-    # Sidebar filters
-    faculty_list = sorted(set(x.strip() for vals in final_df['faculty_partners'].dropna() for x in vals.split(',')))
-    focus_area_list = sorted(set(x.strip() for vals in final_df['focus_cleaned'].dropna() for x in vals.split(',')))
-    activity_list = sorted(final_df['activity_name'].dropna().unique())
-    campus_partner_list = sorted(set(x.strip() for vals in final_df['campus_partners'].dropna() for x in vals.split(',')))
-
-    st.sidebar.header("Filters")
-
-    faculty_selected = st.sidebar.selectbox('Faculty:', options=['All'] + faculty_list, index=0)
-    focus_area_selected = st.sidebar.multiselect('Focus Areas:', options=focus_area_list)
-    activity_selected = st.sidebar.selectbox('Activity:', options=['All'] + activity_list, index=0)
-    campus_selected = st.sidebar.selectbox('Campus:', options=['All'] + campus_partner_list, index=0)
-    color_theme = st.sidebar.selectbox('Color Theme:', options=['County Color Theme', 'Mixed Random Colors'], index=0)
-
-    # Initialize map
     m = folium.Map(location=[center_lat, center_lon], zoom_start=8, tiles=None)
     folium.TileLayer(
         tiles='https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_nolabels/{z}/{x}/{y}.png',
@@ -88,18 +54,16 @@ def main():
     m.fit_bounds([[miny, minx], [maxy, maxx]])
     m.options['maxBounds'] = [[miny, minx], [maxy, maxx]]
 
-    county_to_polygons = {c: [] for c in counties}
+    county_to_polygons = {}
 
-    # Draw municipalities with colors
     for feat in muni_features:
         props = feat["properties"]
         county = props["COUNTY"]
         municipality = props["NAME"]
-        fill_color = (county_color_map[county] if color_theme == 'County Color Theme' 
-                      else municipality_color_map[municipality])
+        fill_color = county_color_map[county] if color_theme == 'County Color Theme' else municipality_color_map[municipality]
 
         polygon = shape(feat["geometry"])
-        county_to_polygons[county].append(polygon)
+        county_to_polygons.setdefault(county, []).append(polygon)
 
         folium.GeoJson(
             feat["geometry"],
@@ -112,7 +76,6 @@ def main():
             tooltip=f"{municipality}, {county}"
         ).add_to(m)
 
-    # Draw thick county boundaries + labels
     for county, polygons in county_to_polygons.items():
         merged = unary_union(polygons)
         folium.GeoJson(
@@ -131,23 +94,53 @@ def main():
             )
         ).add_to(m)
 
-    # Mask outside NJ — FIXED: safely collect holes from all polygons
+    # Mask outside NJ
     world = Polygon([(-180,-90),(-180,90),(180,90),(180,-90)])
-
     holes = []
     for polys in county_to_polygons.values():
         for poly in polys:
             if isinstance(poly, Polygon) and poly.exterior:
                 holes.append(list(poly.exterior.coords))
-
     mask = Polygon(world.exterior.coords, holes=holes)
     folium.GeoJson(mask.__geo_interface__,
-                   style_function=lambda x: {'fillColor':'white','fillOpacity':1,'weight':0}
+                   style_function=lambda x: {'fillColor': 'white', 'fillOpacity': 1, 'weight': 0}
                   ).add_to(m)
+
+    return m, county_to_polygons
+
+def main():
+    st.title("Interactive NJ Map with Activities")
+
+    final_df = load_data()
+    municipal_geo = load_geojson()
+    muni_features = municipal_geo["features"]
+
+    nj_boundary = build_nj_boundary(muni_features)
+
+    counties = sorted({feat["properties"]["COUNTY"] for feat in muni_features})
+    municipalities = sorted({feat["properties"]["NAME"] for feat in muni_features})
+
+    county_color_map = dict(zip(counties, joyful_color_palette(len(counties))))
+    municipality_color_map = dict(zip(municipalities, joyful_color_palette(len(municipalities))))
+
+    # Sidebar
+    st.sidebar.header("Filters")
+    faculty_list = sorted(set(x.strip() for vals in final_df['faculty_partners'].dropna() for x in vals.split(',')))
+    focus_area_list = sorted(set(x.strip() for vals in final_df['focus_cleaned'].dropna() for x in vals.split(',')))
+    activity_list = sorted(final_df['activity_name'].dropna().unique())
+    campus_partner_list = sorted(set(x.strip() for vals in final_df['campus_partners'].dropna() for x in vals.split(',')))
+
+    faculty_selected = st.sidebar.selectbox('Faculty:', options=['All'] + faculty_list, index=0, key="faculty")
+    focus_area_selected = st.sidebar.multiselect('Focus Areas:', options=focus_area_list, key="focus")
+    activity_selected = st.sidebar.selectbox('Activity:', options=['All'] + list(activity_list), index=0, key="activity")
+    campus_selected = st.sidebar.selectbox('Campus:', options=['All'] + campus_partner_list, index=0, key="campus")
+    color_theme = st.sidebar.selectbox('Color Theme:', options=['County Color Theme', 'Mixed Random Colors'], index=0, key="theme")
+
+    # Build and cache base map
+    m, county_to_polygons = build_base_map(muni_features, nj_boundary, county_color_map, municipality_color_map, color_theme)
 
     marker_cluster = MarkerCluster().add_to(m)
 
-    # Filter and add markers
     for _, row in final_df.iterrows():
         pt = Point(row['long_jittered'], row['lat_jittered'])
         if not nj_boundary.contains(pt):
@@ -163,19 +156,20 @@ def main():
             (campus_selected == 'All' or campus_selected in cpnames)):
 
             popup_html = f"""
-              <div style="width:300px;font-size:13px;">
-                <b>Activity:</b> <a href="{row['activity_url']}" target="_blank">{row['activity_name']}</a><br>
-                <b>Faculty:</b> {row['faculty_partners']}<br>
-                <b>Campus:</b> {row['campus_partners']}<br>
-                <b>Contact:</b> <a href="mailto:{row['primary_contact_email']}">{row['primary_contact_email']}</a>
-              </div>"""
+                <div style="width:300px;font-size:13px;">
+                    <b>Activity:</b> <a href="{row['activity_url']}" target="_blank">{row['activity_name']}</a><br>
+                    <b>Faculty:</b> {row['faculty_partners']}<br>
+                    <b>Campus:</b> {row['campus_partners']}<br>
+                    <b>Contact:</b> <a href="mailto:{row['primary_contact_email']}">{row['primary_contact_email']}</a>
+                </div>
+            """
             folium.CircleMarker(
                 location=[row['lat_jittered'], row['long_jittered']],
                 radius=7, color='crimson', fill=True, fill_opacity=0.8,
                 popup=popup_html, tooltip=row['activity_name']
             ).add_to(marker_cluster)
 
-    st_data = st_folium(m, width=900, height=700)
+    st_folium(m, width=950, height=700)
 
 if __name__ == "__main__":
     main()
