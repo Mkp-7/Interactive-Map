@@ -63,7 +63,7 @@ def main():
     county_color_map = dict(zip(counties, joyful_color_palette(len(counties))))
     municipality_color_map = dict(zip(municipalities, joyful_color_palette(len(municipalities))))
 
-    # Widgets / Filters
+    # Sidebar filters
     faculty_list = sorted(set(x.strip() for vals in final_df['faculty_partners'].dropna() for x in vals.split(',')))
     focus_area_list = sorted(set(x.strip() for vals in final_df['focus_cleaned'].dropna() for x in vals.split(',')))
     activity_list = sorted(final_df['activity_name'].dropna().unique())
@@ -130,11 +130,15 @@ def main():
             )
         ).add_to(m)
 
-    # Mask outside NJ
+    # Mask outside NJ — FIXED: safely collect holes from all polygons
     world = Polygon([(-180,-90),(-180,90),(180,90),(180,-90)])
-    holes = [poly.exterior.coords[:] for poly in county_to_polygons[counties[0]]]  # careful here: using only first county
-    # Instead get all holes from all polygons:
-    holes = [poly.exterior.coords[:] for poly in [p for polys in county_to_polygons.values() for p in polys]]
+
+    holes = []
+    for polys in county_to_polygons.values():
+        for poly in polys:
+            if isinstance(poly, Polygon) and poly.exterior:
+                holes.append(list(poly.exterior.coords))
+
     mask = Polygon(world.exterior.coords, holes=holes)
     folium.GeoJson(mask.__geo_interface__,
                    style_function=lambda x: {'fillColor':'white','fillOpacity':1,'weight':0}
@@ -142,7 +146,7 @@ def main():
 
     marker_cluster = MarkerCluster().add_to(m)
 
-    # Filter dataframe rows
+    # Filter and add markers
     for _, row in final_df.iterrows():
         pt = Point(row['long_jittered'], row['lat_jittered'])
         if not nj_boundary.contains(pt):
@@ -152,7 +156,6 @@ def main():
         foc_vals = [f.strip() for f in row['focus_cleaned'].split(',')] if pd.notna(row['focus_cleaned']) else []
         cpnames = [c.strip() for c in row['campus_partners'].split(',')] if pd.notna(row['campus_partners']) else []
 
-        # Apply filters
         if ((faculty_selected == 'All' or faculty_selected in fnames) and
             (not focus_area_selected or all(f in foc_vals for f in focus_area_selected)) and
             (activity_selected == 'All' or activity_selected == row['activity_name']) and
