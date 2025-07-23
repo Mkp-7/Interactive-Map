@@ -1,3 +1,49 @@
+import streamlit as st
+import pandas as pd
+import requests
+import folium
+from shapely.geometry import shape, Point, Polygon, MultiPolygon
+from folium.plugins import MarkerCluster
+from shapely.ops import unary_union
+from streamlit_folium import st_folium
+import random
+import json
+
+st.set_page_config(layout="wide")
+
+@st.cache_data(show_spinner=True)
+def load_data():
+    df = pd.read_excel('Activities_cleaned.xlsx', engine='openpyxl')
+    return df
+
+@st.cache_data(show_spinner=True)
+def load_geojson():
+    with open("nj_municipalities.geojson", "r") as f:
+        municipal_geo = json.load(f)
+    return municipal_geo
+
+
+def joyful_color_palette(n):
+    if n == 0:
+        return []
+    step = max(1, int(360 / n))
+    hues = list(range(0, 360, step))
+    random.shuffle(hues)
+    colors = [f"hsl({hue}, 65%, 70%)" for hue in hues]
+    while len(colors) < n:
+        colors.append(f"hsl({random.randint(0,359)}, 65%, 70%)")
+    return colors[:n]
+
+def build_nj_boundary(muni_features):
+    all_polygons = []
+    for feat in muni_features:
+        geom = shape(feat["geometry"])
+        if isinstance(geom, Polygon):
+            all_polygons.append(geom)
+        elif isinstance(geom, MultiPolygon):
+            all_polygons.extend(geom.geoms)
+    return MultiPolygon(all_polygons)
+
 def main():
     st.title("Interactive NJ Map with Activities")
 
@@ -18,7 +64,7 @@ def main():
     county_color_map = dict(zip(counties, joyful_color_palette(len(counties))))
     municipality_color_map = dict(zip(municipalities, joyful_color_palette(len(municipalities))))
 
-    # Sidebar filters - **declare first**
+    # Sidebar filters
     faculty_list = sorted(set(x.strip() for vals in final_df['faculty_partners'].dropna() for x in vals.split(',')))
     focus_area_list = sorted(set(x.strip() for vals in final_df['focus_cleaned'].dropna() for x in vals.split(',')))
     activity_list = sorted(final_df['activity_name'].dropna().unique())
@@ -85,13 +131,15 @@ def main():
             )
         ).add_to(m)
 
-    # Mask outside NJ
+    # Mask outside NJ — FIXED: safely collect holes from all polygons
     world = Polygon([(-180,-90),(-180,90),(180,90),(180,-90)])
+
     holes = []
     for polys in county_to_polygons.values():
         for poly in polys:
             if isinstance(poly, Polygon) and poly.exterior:
                 holes.append(list(poly.exterior.coords))
+
     mask = Polygon(world.exterior.coords, holes=holes)
     folium.GeoJson(mask.__geo_interface__,
                    style_function=lambda x: {'fillColor':'white','fillOpacity':1,'weight':0}
@@ -99,7 +147,7 @@ def main():
 
     marker_cluster = MarkerCluster().add_to(m)
 
-    # Filter data rows based on widget selections
+    # Filter and add markers
     for _, row in final_df.iterrows():
         pt = Point(row['long_jittered'], row['lat_jittered'])
         if not nj_boundary.contains(pt):
@@ -127,5 +175,7 @@ def main():
                 popup=popup_html, tooltip=row['activity_name']
             ).add_to(marker_cluster)
 
-    # Render map
-    st_folium(m, width=900, height=700)
+    st_data = st_folium(m, width=900, height=700)
+
+if __name__ == "__main__":
+    main()
