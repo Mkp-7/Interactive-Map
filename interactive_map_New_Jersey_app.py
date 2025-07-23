@@ -41,7 +41,7 @@ def joyful_color_palette(n):
     return colors[:n]
 
 def main():
-    st.title("NJ Interactive Map with Activities (County Layer)")
+    st.title("Interactive Map with Activities in NJ")
 
     nj_features = load_nj_counties()
     df = load_data()
