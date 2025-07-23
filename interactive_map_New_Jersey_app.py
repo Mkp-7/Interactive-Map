@@ -11,7 +11,7 @@ st.set_page_config(layout="wide")
 # Cache to load your CSV data
 @st.cache_data
 def load_data():
-    df = pd.read_csv("Activities_cleaned.csv")
+    df = pd.read_excel("Activities_cleaned.xlsx", engine="openpyxl")
     return df
 
 # Cache to load your GeoJSON file for municipalities (adjust path if needed)
