@@ -5,8 +5,9 @@ from folium.plugins import MarkerCluster
 from streamlit_folium import st_folium
 import random
 
-st.set_page_config(page_title="Interactive Map", layout="wide", initial_sidebar_state="expanded")
+st.title("Interactive Map of Activities")
 st.markdown("**Count shows number of locations**")
+
 
 
 # Function to add jitter to coordinates
