@@ -61,8 +61,8 @@ def main():
             }
             /* To prevent Streamlit default padding or margin messing with container */
             .block-container {
-                padding-top: 0rem;
-                padding-bottom: 0rem;
+                padding-top: 10rem;
+                padding-bottom: 20rem;
             }
     </style>
     """, unsafe_allow_html=True)
