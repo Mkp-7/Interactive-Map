@@ -9,25 +9,23 @@ from streamlit_folium import st_folium
 
 st.set_page_config(layout="wide")
 
-# Load NJ counties GeoJSON (Plotly repo)
+# Load NJ counties GeoJSON
 @st.cache_data
 def load_nj_counties():
     url = "https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json"
     geojson = requests.get(url).json()
-    # Filter only NJ counties (STATE == '34')
     nj_features = [f for f in geojson['features'] if f['properties']['STATE'] == '34']
     return nj_features
 
-# Load activities Excel data
+# Load Excel data
 @st.cache_data
 def load_data():
     df = pd.read_excel("Activities_cleaned.xlsx", engine="openpyxl")
-    # Add jitter to lat/long for marker placement
     df['lat_jittered'] = df['primary_site_lat'].apply(lambda x: x + random.uniform(-0.001, 0.001))
     df['long_jittered'] = df['primary_site_long'].apply(lambda x: x + random.uniform(-0.001, 0.001))
     return df
 
-# Generate joyful HSL colors for counties
+# Generate joyful colors
 @st.cache_data
 def joyful_color_palette(n):
     if n == 0:
@@ -39,25 +37,23 @@ def joyful_color_palette(n):
     while len(colors) < n:
         colors.append(f"hsl({random.randint(0,359)}, 65%, 70%)")
     return colors[:n]
-     
+
 def main():
     st.title("Interactive Map with Activities in NJ")
 
     nj_features = load_nj_counties()
     df = load_data()
 
-    # Build MultiPolygon boundary of NJ
     nj_polygons = [shape(f['geometry']) for f in nj_features]
     nj_boundary = MultiPolygon(nj_polygons)
     minx, miny, maxx, maxy = nj_boundary.bounds
     center_lat = (miny + maxy) / 2
     center_lon = (minx + maxx) / 2
 
-    # Get sorted county names from GeoJSON properties
     county_names = sorted({f['properties']['NAME'] for f in nj_features})
     county_color_map = dict(zip(county_names, joyful_color_palette(len(county_names))))
 
-    # Sidebar filters (adjust column names if needed)
+    # Filter option lists
     faculty_list = sorted(set(
         x.strip() for vals in df['faculty_partners'].dropna() for x in vals.split(',')
     ))
@@ -69,13 +65,41 @@ def main():
         x.strip() for vals in df['campus_partners'].dropna() for x in vals.split(',')
     ))
 
-    st.sidebar.header("Filters")
-    faculty_selected = st.sidebar.selectbox("Faculty:", options=['All'] + faculty_list)
-    focus_selected = st.sidebar.selectbox("Focus Area:", options=['All'] + focus_area_list)
-    activity_selected = st.sidebar.selectbox("Activity:", options=['All'] + activity_list)
-    campus_selected = st.sidebar.selectbox("Campus Partner:", options=['All'] + campus_partner_list)
+    # Initialize session state defaults
+    if 'faculty_selected' not in st.session_state:
+        st.session_state.faculty_selected = 'All'
+    if 'focus_selected' not in st.session_state:
+        st.session_state.focus_selected = 'All'
+    if 'activity_selected' not in st.session_state:
+        st.session_state.activity_selected = 'All'
+    if 'campus_selected' not in st.session_state:
+        st.session_state.campus_selected = 'All'
 
-    # Initialize map with no tiles for custom tile layer
+    st.sidebar.header("Filters")
+
+    # Filter dropdowns linked to session_state
+    faculty_selected = st.sidebar.selectbox(
+        "Faculty:", options=['All'] + faculty_list, key='faculty_selected'
+    )
+    focus_selected = st.sidebar.selectbox(
+        "Focus Area:", options=['All'] + focus_area_list, key='focus_selected'
+    )
+    activity_selected = st.sidebar.selectbox(
+        "Activity:", options=['All'] + activity_list, key='activity_selected'
+    )
+    campus_selected = st.sidebar.selectbox(
+        "Campus Partner:", options=['All'] + campus_partner_list, key='campus_selected'
+    )
+
+    # Reset button
+    if st.sidebar.button("Reset Filters"):
+        st.session_state.faculty_selected = 'All'
+        st.session_state.focus_selected = 'All'
+        st.session_state.activity_selected = 'All'
+        st.session_state.campus_selected = 'All'
+        st.experimental_rerun()  # Rerun to update UI
+
+    # Folium map setup
     m = folium.Map(location=[center_lat, center_lon], zoom_start=8, tiles=None)
     folium.TileLayer(
         tiles='https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_nolabels/{z}/{x}/{y}.png',
@@ -83,7 +107,6 @@ def main():
         control=False
     ).add_to(m)
 
-    # Draw counties with joyful colors and black border
     for feature in nj_features:
         county = feature['properties']['NAME']
         color = county_color_map.get(county, '#ddd')
@@ -97,7 +120,6 @@ def main():
             }
         ).add_to(m)
 
-    # Add county labels at centroid
     for feature in nj_features:
         county = feature['properties']['NAME']
         geom = shape(feature['geometry'])
@@ -107,7 +129,6 @@ def main():
             icon=folium.DivIcon(html=f'<div style="font-size:13px; font-weight:bold; color:black; text-shadow:1px 1px white;">{county}</div>')
         ).add_to(m)
 
-    # Mask outside NJ with white polygon
     world = Polygon([(-180, -90), (-180, 90), (180, 90), (180, -90)])
     holes = [poly.exterior.coords[:] for poly in nj_polygons if poly.exterior]
     mask = Polygon(world.exterior.coords, holes=holes)
@@ -121,7 +142,6 @@ def main():
         }
     ).add_to(m)
 
-    # Marker cluster for activities filtered by sidebar
     marker_cluster = folium.plugins.MarkerCluster().add_to(m)
 
     for _, row in df.iterrows():
@@ -131,12 +151,10 @@ def main():
         if not nj_boundary.contains(pt):
             continue
 
-        # Parse faculty, focus, campus
         faculties = [x.strip() for x in str(row['faculty_partners']).split(',')] if pd.notna(row['faculty_partners']) else []
         focuses = [x.strip() for x in str(row['focus_cleaned']).split(',')] if pd.notna(row['focus_cleaned']) else []
         campuses = [x.strip() for x in str(row['campus_partners']).split(',')] if pd.notna(row['campus_partners']) else []
-            
-        # Filter check
+
         if ((faculty_selected == 'All' or faculty_selected in faculties) and
             (focus_selected == 'All' or focus_selected in focuses) and
             (activity_selected == 'All' or activity_selected == row['activity_name']) and
@@ -150,7 +168,7 @@ def main():
                 <b>Contact:</b> <a href="mailto:{row['primary_contact_email']}">{row['primary_contact_email']}</a>
             </div>
             """
-        
+
             folium.CircleMarker(
                 location=[lat, lon],
                 radius=7,
@@ -160,12 +178,6 @@ def main():
                 popup=popup_html,
                 tooltip=row['activity_name']
             ).add_to(marker_cluster)
-            
-    if st.sidebar.button('Reset Filters'):
-       faculty_selected = 'All'
-       focus_selected = 'All'
-       activity_selected = 'All'
-       campus_selected = 'All'     
 
     st_folium(m, width=900, height=700)
 
