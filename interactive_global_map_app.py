@@ -34,7 +34,7 @@ activity_list = sorted(final_df['activity_name'].dropna().unique())
 campus_partner_list = extract_unique(final_df['campus_partners'])
 
 st.title("Interactive Map of Activities")
-st.markdown("**-Count shows number of locations**")
+st.markdown("**-  Count shows number of locations**")
 
 # Sidebar filters
 selected_faculty = st.sidebar.selectbox('Faculty:', ['All'] + faculty_list)
