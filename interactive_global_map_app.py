@@ -80,7 +80,7 @@ filtered_df = final_df[final_df.apply(row_matches, axis=1)]
 
 # Create map
 m = folium.Map(
-    location=[final_df['lat_jittered'].mean(), final_df['long_jittered'].mean()],
+    location=[40.86468,74.19692],
     zoom_start=9,
     control_scale=True,
     tiles=None
