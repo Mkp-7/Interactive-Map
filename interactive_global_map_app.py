@@ -6,10 +6,8 @@ from streamlit_folium import st_folium
 import random
 
 st.set_page_config(page_title="Interactive Map", layout="wide", initial_sidebar_state="expanded")
-st.markdown(
-    "<h4 style='margin-top: -10px; font-weight: normal;'>Count shows number of locations</h4>",
-    unsafe_allow_html=True
-)
+st.markdown("**Count shows number of locations**")
+
 
 # Function to add jitter to coordinates
 def add_jitter(val, scale=0.001):
