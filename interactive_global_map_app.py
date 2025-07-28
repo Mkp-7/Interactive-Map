@@ -80,7 +80,7 @@ filtered_df = final_df[final_df.apply(row_matches, axis=1)]
 
 # Create map
 m = folium.Map(
-    location=[40.86468,74.19692],
+    location=[40.86468785,-74.19692],
     zoom_start=9,
     control_scale=True,
     tiles=None
