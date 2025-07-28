@@ -45,34 +45,7 @@ def reset_filters():
     st.session_state.campus_selected = 'All'
 
 def main():
-
-    # CSS for the main container wrapping everything on the page (except sidebar)
-    st.markdown("""
-    <style>
-            .main-container {
-                border: 5px solid black !important;
-                padding: 20px 30px !important;
-                border-radius: 8px !important;
-                box-sizing: border-box !important;
-                margin: 40px auto !important;
-                max-width: 960px !important;
-                background-color: white !important;
-                min-height: 600px; /* ensure height */
-            }
-            /* To prevent Streamlit default padding or margin messing with container */
-            .block-container {
-                padding-top: 10rem;
-                padding-bottom: 20rem;
-            }
-    </style>
-    """, unsafe_allow_html=True)
-
-    # Open main container div
-    st.markdown('<div class="main-container">', unsafe_allow_html=True)
-
-    # Title and subtitle inside container
     st.title("Interactive Map with Activities in NJ")
-    st.markdown("### Explore activities across New Jersey with filtering options")
 
     nj_features = load_nj_counties()
     df = load_data()
@@ -202,25 +175,8 @@ def main():
                 tooltip=row['activity_name']
             ).add_to(marker_cluster)
 
-    # Wrap map output inside a bordered div of exact map size
-    st.markdown("""
-    <div style="
-        width: 900px; 
-        height: 600px; 
-        border: 5px solid black; 
-        border-radius: 8px; 
-        box-sizing: border-box;
-        margin-top: 20px;
-        overflow: hidden;
-    ">
-    """, unsafe_allow_html=True)
-
+    # Show map directly without extra borders or containers
     st_folium(m, width=900, height=600)
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    # Close main container div
-    st.markdown('</div>', unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
