@@ -48,17 +48,23 @@ def main():
 
     # CSS for the main container wrapping everything on the page (except sidebar)
     st.markdown("""
-        <style>
+    <style>
             .main-container {
-                border: 5px solid black;
-                padding: 20px 30px;
-                border-radius: 8px;
-                box-sizing: border-box;
-                margin: 20px auto 40px auto;
-                max-width: 960px;
-                background-color: white;
+                border: 5px solid black !important;
+                padding: 20px 30px !important;
+                border-radius: 8px !important;
+                box-sizing: border-box !important;
+                margin: 40px auto !important;
+                max-width: 960px !important;
+                background-color: white !important;
+                min-height: 600px; /* ensure height */
             }
-        </style>
+            /* To prevent Streamlit default padding or margin messing with container */
+            .block-container {
+                padding-top: 0rem;
+                padding-bottom: 0rem;
+            }
+    </style>
     """, unsafe_allow_html=True)
 
     # Open main container div
