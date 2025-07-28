@@ -49,15 +49,16 @@ def main():
         <style>
             .map-border {
                 border: 5px solid black;
-                padding: 15px;
+                padding: 20px;
                 margin-top: 20px;
-                border-radius: 8px;
+                border-radius: 10px;
                 box-sizing: border-box;
             }
         </style>
     """, unsafe_allow_html=True)
 
     st.markdown('<div class="map-border">', unsafe_allow_html=True)
+
     st.title("Interactive Map with Activities in NJ")
     st.markdown(
         '<p style="font-size:16px; font-family:Arial; margin-top:-15px;">Count shows number of locations</p>',
@@ -76,7 +77,6 @@ def main():
     county_names = sorted({f['properties']['NAME'] for f in nj_features})
     county_color_map = dict(zip(county_names, joyful_color_palette(len(county_names))))
 
-    # Filter option lists
     faculty_list = sorted(set(
         x.strip() for vals in df['faculty_partners'].dropna() for x in vals.split(',')
     ))
@@ -179,7 +179,5 @@ def main():
             ).add_to(marker_cluster)
 
     st_folium(m, width=900, height=600)
-    st.markdown('</div>', unsafe_allow_html=True)
 
-if __name__ == "__main__":
-    main()
+    st.markdown('</div>', unsafe_allow_html=True)
