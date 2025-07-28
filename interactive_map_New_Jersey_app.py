@@ -175,7 +175,15 @@ def main():
                 tooltip=row['activity_name']
             ).add_to(marker_cluster)
 
-    st_folium(m, width=900, height=700)
+    with st.container():
+    st.markdown(
+        """
+        <div style="border: 3px solid #4CAF50; border-radius: 10px; padding: 5px;">
+        """,
+        unsafe_allow_html=True
+    )
+    st_folium(m, width=900, height=600)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
