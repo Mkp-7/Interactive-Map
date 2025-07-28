@@ -67,7 +67,8 @@ def reset_filters():
     st.session_state.campus_dropdown = 'All'
 
 # --- Streamlit UI ---
-st.title("Interactive Map of Activities in NJ")
+st.title("Interactive Map of Activities")
+st.markdown("**- Count shows number of locations**")
 
 faculty_dropdown = st.sidebar.selectbox('Faculty:', ['All'] + faculty_list, key='faculty_dropdown')
 focus_area_dropdown = st.sidebar.selectbox('Focus Area:', ['All'] + focus_area_list, key='focus_area_dropdown')
