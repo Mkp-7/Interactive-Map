@@ -45,7 +45,7 @@ def reset_filters():
     st.session_state.campus_selected = 'All'
 
 def main():
-    st.title("Interactive Map with Activities in NJ")
+    st.title("Interactive Map of Activities in NJ")
     st.markdown("**-  Count shows number of locations**")
 
     nj_features = load_nj_counties()
