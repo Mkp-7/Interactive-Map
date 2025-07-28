@@ -202,16 +202,17 @@ def main():
                 tooltip=row['activity_name']
             ).add_to(marker_cluster)
 
-    # Map bordered container div (matches map width/height)
+    # Wrap map output inside a bordered div of exact map size
     st.markdown("""
-        <div style="
-            width: 900px; 
-            height: 600px; 
-            border: 5px solid black; 
-            border-radius: 8px; 
-            box-sizing: border-box;
-            margin-top: 20px;
-        ">
+    <div style="
+        width: 900px; 
+        height: 600px; 
+        border: 5px solid black; 
+        border-radius: 8px; 
+        box-sizing: border-box;
+        margin-top: 20px;
+        overflow: hidden;
+    ">
     """, unsafe_allow_html=True)
 
     st_folium(m, width=900, height=600)
@@ -220,3 +221,6 @@ def main():
 
     # Close main container div
     st.markdown('</div>', unsafe_allow_html=True)
+
+if __name__ == "__main__":
+    main()
