@@ -40,7 +40,7 @@ def joyful_color_palette(n):
         colors.append(f"hsl({random.randint(0,359)}, 65%, 70%)")
     return colors[:n]
 
- if st.sidebar.button('Reset Filters'):
+if st.sidebar.button('Reset Filters'):
     selected_faculty = 'All'
     selected_focus = 'All'
     selected_activity = 'All'
