@@ -175,6 +175,6 @@ def main():
                 popup=popup_html,
                 tooltip=row['activity_name']
             ).add_to(marker_cluster)
-
+    st_folium(m, width=900, height=600)
 if __name__ == "__main__":
     main()
