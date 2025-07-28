@@ -150,12 +150,7 @@ def main():
                 <b>Contact:</b> <a href="mailto:{row['primary_contact_email']}">{row['primary_contact_email']}</a>
             </div>
             """
-        if st.sidebar.button('Reset Filters'):
-            selected_faculty = 'All'
-            selected_focus = 'All'
-            selected_activity = 'All'
-            selected_campus = 'All'
-            selected_tile = 'OpenStreetMap'
+        
             folium.CircleMarker(
                 location=[lat, lon],
                 radius=7,
@@ -165,6 +160,13 @@ def main():
                 popup=popup_html,
                 tooltip=row['activity_name']
             ).add_to(marker_cluster)
+            
+    if st.sidebar.button('Reset Filters'):
+            selected_faculty = 'All'
+            selected_focus = 'All'
+            selected_activity = 'All'
+            selected_campus = 'All'
+            selected_tile = 'OpenStreetMap'        
 
     st_folium(m, width=900, height=700)
 
