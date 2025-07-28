@@ -33,14 +33,28 @@ focus_area_list = extract_unique(final_df['focus_cleaned'])
 activity_list = sorted(final_df['activity_name'].dropna().unique())
 campus_partner_list = extract_unique(final_df['campus_partners'])
 
-st.title("Interactive Map of Activities")
-st.markdown("**-  Count shows number of locations**")
+# Initialize session state for filters and tile if not present
+if 'faculty_selected' not in st.session_state:
+    st.session_state.faculty_selected = 'All'
+if 'focus_selected' not in st.session_state:
+    st.session_state.focus_selected = 'All'
+if 'activity_selected' not in st.session_state:
+    st.session_state.activity_selected = 'All'
+if 'campus_selected' not in st.session_state:
+    st.session_state.campus_selected = 'All'
+if 'selected_tile' not in st.session_state:
+    st.session_state.selected_tile = 'OpenStreetMap'
 
-# Sidebar filters
-selected_faculty = st.sidebar.selectbox('Faculty:', ['All'] + faculty_list)
-selected_focus = st.sidebar.selectbox('Focus Area:', ['All'] + focus_area_list)
-selected_activity = st.sidebar.selectbox('Activity:', ['All'] + activity_list)
-selected_campus = st.sidebar.selectbox('Campus Partner:', ['All'] + campus_partner_list)
+# Reset filters callback function
+def reset_filters():
+    st.session_state.faculty_selected = 'All'
+    st.session_state.focus_selected = 'All'
+    st.session_state.activity_selected = 'All'
+    st.session_state.campus_selected = 'All'
+    st.session_state.selected_tile = 'OpenStreetMap'
+
+st.title("Interactive Map of Activities")
+st.markdown("**- Count shows number of locations**")
 
 tile_options = {
     'OpenStreetMap': 'OpenStreetMap',
@@ -54,55 +68,50 @@ tile_attribution = {
     'CartoDB Dark Matter': '© OpenStreetMap contributors, © CARTO',
     'Esri Satellite': 'Tiles © Esri, Maxar, Earthstar Geographics, and the GIS User Community'
 }
-selected_tile = st.sidebar.selectbox('Map Style:', list(tile_options.keys()))
+
+# Sidebar filters bound to session_state keys
+selected_faculty = st.sidebar.selectbox('Faculty:', ['All'] + faculty_list, key='faculty_selected')
+selected_focus = st.sidebar.selectbox('Focus Area:', ['All'] + focus_area_list, key='focus_selected')
+selected_activity = st.sidebar.selectbox('Activity:', ['All'] + activity_list, key='activity_selected')
+selected_campus = st.sidebar.selectbox('Campus Partner:', ['All'] + campus_partner_list, key='campus_selected')
+selected_tile = st.sidebar.selectbox('Map Style:', list(tile_options.keys()), key='selected_tile')
+
+# Reset Filters button
 st.sidebar.button("Reset Filters", on_click=reset_filters)
 
-if st.sidebar.button('Reset Filters'):
-    selected_faculty = 'All'
-    selected_focus = 'All'
-    selected_activity = 'All'
-    selected_campus = 'All'
-    selected_tile = 'OpenStreetMap'
-
-# Filter data
-def reset_filters():
-    st.session_state.faculty_selected = 'All'
-    st.session_state.focus_selected = 'All'
-    st.session_state.activity_selected = 'All'
-    st.session_state.campus_selected = 'All'
-    
+# Filter data function
 def row_matches(row):
-    faculty_names = extract_unique(pd.Series(row['faculty_partners'])) if pd.notna(row['faculty_partners']) else []
-    campus_names = extract_unique(pd.Series(row['campus_partners'])) if pd.notna(row['campus_partners']) else []
-    focus_cleaned_str = str(row['focus_cleaned']).strip().lower()
+    faculty_names = [x.strip() for x in str(row['faculty_partners']).split(',')] if pd.notna(row['faculty_partners']) else []
+    campus_names = [x.strip() for x in str(row['campus_partners']).split(',')] if pd.notna(row['campus_partners']) else []
+    focus_cleaned_str = str(row['focus_cleaned']).lower() if pd.notna(row['focus_cleaned']) else ''
 
-    faculty_match = (selected_faculty == 'All' or selected_faculty in faculty_names)
-    focus_match = (selected_focus == 'All' or selected_focus.lower() in focus_cleaned_str)
-    activity_match = (selected_activity == 'All' or selected_activity == row['activity_name'])
-    campus_match = (selected_campus == 'All' or selected_campus in campus_names)
+    faculty_match = (st.session_state.faculty_selected == 'All' or st.session_state.faculty_selected in faculty_names)
+    focus_match = (st.session_state.focus_selected == 'All' or st.session_state.focus_selected.lower() in focus_cleaned_str)
+    activity_match = (st.session_state.activity_selected == 'All' or st.session_state.activity_selected == row['activity_name'])
+    campus_match = (st.session_state.campus_selected == 'All' or st.session_state.campus_selected in campus_names)
 
     return faculty_match and focus_match and activity_match and campus_match
 
 filtered_df = final_df[final_df.apply(row_matches, axis=1)]
 
-# Create map
+# Create map with selected tiles
 m = folium.Map(
-    location=[40.86468,-74.19692],
+    location=[40.86468, -74.19692],
     zoom_start=9,
     control_scale=True,
     tiles=None
 )
 
 folium.TileLayer(
-    tiles=tile_options[selected_tile],
-    attr=tile_attribution[selected_tile],
-    name=selected_tile,
+    tiles=tile_options[st.session_state.selected_tile],
+    attr=tile_attribution[st.session_state.selected_tile],
+    name=st.session_state.selected_tile,
     control=False
 ).add_to(m)
 
 marker_cluster = MarkerCluster().add_to(m)
 
-# Add markers with plain faculty display
+# Add markers
 for _, row in filtered_df.iterrows():
     faculty_display = row['faculty_partners'] if pd.notna(row['faculty_partners']) else 'N/A'
 
@@ -126,5 +135,5 @@ for _, row in filtered_df.iterrows():
         tooltip=row['activity_name']
     ).add_to(marker_cluster)
 
-# Show map
-st_data = st_folium(m, width=700, height=500)
+# Display map
+st_folium(m, width=700, height=500)
