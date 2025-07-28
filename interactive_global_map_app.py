@@ -55,6 +55,7 @@ tile_attribution = {
     'Esri Satellite': 'Tiles © Esri, Maxar, Earthstar Geographics, and the GIS User Community'
 }
 selected_tile = st.sidebar.selectbox('Map Style:', list(tile_options.keys()))
+st.sidebar.button("Reset Filters", on_click=reset_filters)
 
 if st.sidebar.button('Reset Filters'):
     selected_faculty = 'All'
@@ -64,6 +65,12 @@ if st.sidebar.button('Reset Filters'):
     selected_tile = 'OpenStreetMap'
 
 # Filter data
+def reset_filters():
+    st.session_state.faculty_selected = 'All'
+    st.session_state.focus_selected = 'All'
+    st.session_state.activity_selected = 'All'
+    st.session_state.campus_selected = 'All'
+    
 def row_matches(row):
     faculty_names = extract_unique(pd.Series(row['faculty_partners'])) if pd.notna(row['faculty_partners']) else []
     campus_names = extract_unique(pd.Series(row['campus_partners'])) if pd.notna(row['campus_partners']) else []
