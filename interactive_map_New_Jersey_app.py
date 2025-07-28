@@ -40,6 +40,13 @@ def joyful_color_palette(n):
         colors.append(f"hsl({random.randint(0,359)}, 65%, 70%)")
     return colors[:n]
 
+ if st.sidebar.button('Reset Filters'):
+    selected_faculty = 'All'
+    selected_focus = 'All'
+    selected_activity = 'All'
+    selected_campus = 'All'
+    selected_tile = 'OpenStreetMap'
+     
 def main():
     st.title("Interactive Map with Activities in NJ")
 
