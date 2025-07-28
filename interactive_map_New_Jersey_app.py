@@ -45,54 +45,155 @@ def reset_filters():
     st.session_state.campus_selected = 'All'
 
 def main():
-    st.set_page_config(layout="wide")
+    st.title("Interactive Map with Activities in NJ")
 
-    # Load and clean data
+    nj_features = load_nj_counties()
     df = load_data()
-    if df.empty:
-        st.error("Data could not be loaded.")
-        return
 
-    # Optional filtering
-    filtered_df = df  # or apply filters if you need
+    nj_polygons = [shape(f['geometry']) for f in nj_features]
+    nj_boundary = MultiPolygon(nj_polygons)
+    minx, miny, maxx, maxy = nj_boundary.bounds
+    center_lat = (miny + maxy) / 2
+    center_lon = (minx + maxx) / 2
 
-    # Create the map
-    m = folium.Map(location=[40.0583, -74.4057], zoom_start=7)
+    county_names = sorted({f['properties']['NAME'] for f in nj_features})
+    county_color_map = dict(zip(county_names, joyful_color_palette(len(county_names))))
 
-    for _, row in filtered_df.iterrows():
-        if pd.notnull(row['primary_site_lat']) and pd.notnull(row['primary_site_long']):
-            folium.Marker(
-                location=[row['primary_site_lat'], row['primary_site_long']],
-                popup=row.get('activity_name', 'Activity'),
-                tooltip=row.get('activity_name', 'Activity')
-            ).add_to(m)
+    # Filter option lists
+    faculty_list = sorted(set(
+        x.strip() for vals in df['faculty_partners'].dropna() for x in vals.split(',')
+    ))
+    focus_area_list = sorted(set(
+        x.strip() for vals in df['focus_cleaned'].dropna() for x in vals.split(',')
+    ))
+    activity_list = sorted(df['activity_name'].dropna().unique())
+    campus_partner_list = sorted(set(
+        x.strip() for vals in df['campus_partners'].dropna() for x in vals.split(',')
+    ))
 
-    # Apply styling and display
+    # Initialize session state defaults
+    for key in ['faculty_selected', 'focus_selected', 'activity_selected', 'campus_selected']:
+        if key not in st.session_state:
+            st.session_state[key] = 'All'
+
+    st.sidebar.header("Filters")
+
+    # Selectboxes
+    faculty_selected = st.sidebar.selectbox(
+        "Faculty:", options=['All'] + faculty_list, key='faculty_selected'
+    )
+    focus_selected = st.sidebar.selectbox(
+        "Focus Area:", options=['All'] + focus_area_list, key='focus_selected'
+    )
+    activity_selected = st.sidebar.selectbox(
+        "Activity:", options=['All'] + activity_list, key='activity_selected'
+    )
+    campus_selected = st.sidebar.selectbox(
+        "Campus Partner:", options=['All'] + campus_partner_list, key='campus_selected'
+    )
+
+    # Reset button (moved below filters)
+    st.sidebar.button("Reset Filters", on_click=reset_filters)
+
+    # CSS for black square border
     st.markdown("""
         <style>
             .map-border {
-                border: 4px solid black;
-                padding: 20px;
+                border: 5px solid black;
+                padding: 10px;
                 margin-top: 20px;
-                border-radius: 10px;
+                border-radius: 5px;
                 box-sizing: border-box;
             }
         </style>
-        <div class="map-border">
     """, unsafe_allow_html=True)
 
-    # Title
-    st.title("Interactive Map of Activities")
+    # Map rendering inside bordered div
+    with st.container():
+        st.markdown('<div class="map-border">', unsafe_allow_html=True)
 
-    # Subtitle text
-    st.markdown(
-        '<p style="font-size:16px; font-family:Arial; margin-top:-10px;">Count shows number of locations</p>',
-        unsafe_allow_html=True
-    )
+        # Folium Map
+        m = folium.Map(location=[center_lat, center_lon], zoom_start=8, tiles=None)
+        folium.TileLayer(
+            tiles='https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_nolabels/{z}/{x}/{y}.png',
+            attr='© OpenStreetMap contributors, © CARTO',
+            control=False
+        ).add_to(m)
 
-    # Map display
-    st_folium(m, width=900, height=600)
+        for feature in nj_features:
+            county = feature['properties']['NAME']
+            color = county_color_map.get(county, '#ddd')
+            folium.GeoJson(
+                feature['geometry'],
+                style_function=lambda f, color=color: {
+                    'fillColor': color,
+                    'color': 'black',
+                    'weight': 1,
+                    'fillOpacity': 0.6,
+                }
+            ).add_to(m)
 
-    # Close the container div
-    st.markdown("</div>", unsafe_allow_html=True)
+        for feature in nj_features:
+            county = feature['properties']['NAME']
+            geom = shape(feature['geometry'])
+            centroid = geom.centroid
+            folium.Marker(
+                [centroid.y, centroid.x],
+                icon=folium.DivIcon(html=f'<div style="font-size:13px; font-weight:bold; color:black; text-shadow:1px 1px white;">{county}</div>')
+            ).add_to(m)
 
+        world = Polygon([(-180, -90), (-180, 90), (180, 90), (180, -90)])
+        holes = [poly.exterior.coords[:] for poly in nj_polygons if poly.exterior]
+        mask = Polygon(world.exterior.coords, holes=holes)
+        folium.GeoJson(
+            data=mask.__geo_interface__,
+            style_function=lambda x: {
+                'fillColor': 'white',
+                'fillOpacity': 1,
+                'weight': 0,
+                'color': 'white'
+            }
+        ).add_to(m)
+
+        marker_cluster = MarkerCluster().add_to(m)
+
+        for _, row in df.iterrows():
+            lat = row['lat_jittered']
+            lon = row['long_jittered']
+            pt = Point(lon, lat)
+            if not nj_boundary.contains(pt):
+                continue
+
+            faculties = [x.strip() for x in str(row['faculty_partners']).split(',')] if pd.notna(row['faculty_partners']) else []
+            focuses = [x.strip() for x in str(row['focus_cleaned']).split(',')] if pd.notna(row['focus_cleaned']) else []
+            campuses = [x.strip() for x in str(row['campus_partners']).split(',')] if pd.notna(row['campus_partners']) else []
+
+            if ((faculty_selected == 'All' or faculty_selected in faculties) and
+                (focus_selected == 'All' or focus_selected in focuses) and
+                (activity_selected == 'All' or activity_selected == row['activity_name']) and
+                (campus_selected == 'All' or campus_selected in campuses)):
+
+                popup_html = f"""
+                <div style="width:300px; font-size:13px;">
+                    <b>Activity:</b> <a href="{row['activity_url']}" target="_blank">{row['activity_name']}</a><br>
+                    <b>Faculty:</b> {row['faculty_partners']}<br>
+                    <b>Campus:</b> {row['campus_partners']}<br>
+                    <b>Contact:</b> <a href="mailto:{row['primary_contact_email']}">{row['primary_contact_email']}</a>
+                </div>
+                """
+
+                folium.CircleMarker(
+                    location=[lat, lon],
+                    radius=7,
+                    color='crimson',
+                    fill=True,
+                    fill_opacity=0.8,
+                    popup=popup_html,
+                    tooltip=row['activity_name']
+                ).add_to(marker_cluster)
+
+        st_folium(m, width=900, height=600)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+if __name__ == "__main__":
+    main()
