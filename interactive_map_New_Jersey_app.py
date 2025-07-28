@@ -102,6 +102,15 @@ def main():
         attr='© OpenStreetMap contributors, © CARTO',
         control=False
     ).add_to(m)
+    with st.container():
+            st.markdown(
+                """
+                <div style="border: 3px solid #4CAF50; border-radius: 10px; padding: 5px;">
+                """,
+                unsafe_allow_html=True
+            )
+            st_folium(m, width=900, height=600)
+            st.markdown("</div>", unsafe_allow_html=True)
 
     for feature in nj_features:
         county = feature['properties']['NAME']
@@ -174,16 +183,6 @@ def main():
                 popup=popup_html,
                 tooltip=row['activity_name']
             ).add_to(marker_cluster)
-
-    with st.container():
-            st.markdown(
-                """
-                <div style="border: 3px solid #4CAF50; border-radius: 10px; padding: 5px;">
-                """,
-                unsafe_allow_html=True
-            )
-            st_folium(m, width=900, height=600)
-            st.markdown("</div>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
