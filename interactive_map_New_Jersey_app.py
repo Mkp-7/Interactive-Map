@@ -46,6 +46,7 @@ def reset_filters():
 
 def main():
     st.title("Interactive Map with Activities in NJ")
+    st.markdown("**-  Count shows number of locations**")
 
     nj_features = load_nj_counties()
     df = load_data()
