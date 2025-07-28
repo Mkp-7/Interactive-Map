@@ -38,6 +38,12 @@ def joyful_color_palette(n):
         colors.append(f"hsl({random.randint(0,359)}, 65%, 70%)")
     return colors[:n]
 
+def reset_filters():
+    st.session_state.faculty_selected = 'All'
+    st.session_state.focus_selected = 'All'
+    st.session_state.activity_selected = 'All'
+    st.session_state.campus_selected = 'All'
+
 def main():
     st.title("Interactive Map with Activities in NJ")
 
@@ -65,19 +71,17 @@ def main():
         x.strip() for vals in df['campus_partners'].dropna() for x in vals.split(',')
     ))
 
-    # Initialize session state defaults
-    if 'faculty_selected' not in st.session_state:
-        st.session_state.faculty_selected = 'All'
-    if 'focus_selected' not in st.session_state:
-        st.session_state.focus_selected = 'All'
-    if 'activity_selected' not in st.session_state:
-        st.session_state.activity_selected = 'All'
-    if 'campus_selected' not in st.session_state:
-        st.session_state.campus_selected = 'All'
+    # Initialize session state defaults if not set
+    for key in ['faculty_selected', 'focus_selected', 'activity_selected', 'campus_selected']:
+        if key not in st.session_state:
+            st.session_state[key] = 'All'
 
     st.sidebar.header("Filters")
 
-    # Filter dropdowns linked to session_state
+    # Reset button with on_click handler
+    st.sidebar.button("Reset Filters", on_click=reset_filters)
+
+    # Selectboxes controlled by session state keys
     faculty_selected = st.sidebar.selectbox(
         "Faculty:", options=['All'] + faculty_list, key='faculty_selected'
     )
@@ -90,14 +94,6 @@ def main():
     campus_selected = st.sidebar.selectbox(
         "Campus Partner:", options=['All'] + campus_partner_list, key='campus_selected'
     )
-
-    # Reset button
-    if st.sidebar.button("Reset Filters"):
-        st.session_state.faculty_selected = 'All'
-        st.session_state.focus_selected = 'All'
-        st.session_state.activity_selected = 'All'
-        st.session_state.campus_selected = 'All'
-        st.experimental_rerun()  # Rerun to update UI
 
     # Folium map setup
     m = folium.Map(location=[center_lat, center_lon], zoom_start=8, tiles=None)
@@ -142,7 +138,7 @@ def main():
         }
     ).add_to(m)
 
-    marker_cluster = folium.plugins.MarkerCluster().add_to(m)
+    marker_cluster = MarkerCluster().add_to(m)
 
     for _, row in df.iterrows():
         lat = row['lat_jittered']
