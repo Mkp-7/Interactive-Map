@@ -5,11 +5,6 @@ from folium.plugins import MarkerCluster
 from streamlit_folium import st_folium
 import random
 
-st.title("Interactive Map of Activities")
-st.markdown("**Count shows number of locations**")
-
-
-
 # Function to add jitter to coordinates
 def add_jitter(val, scale=0.001):
     return val + random.uniform(-scale, scale)
@@ -39,6 +34,7 @@ activity_list = sorted(final_df['activity_name'].dropna().unique())
 campus_partner_list = extract_unique(final_df['campus_partners'])
 
 st.title("Interactive Map of Activities")
+st.markdown("**-Count shows number of locations**")
 
 # Sidebar filters
 selected_faculty = st.sidebar.selectbox('Faculty:', ['All'] + faculty_list)
