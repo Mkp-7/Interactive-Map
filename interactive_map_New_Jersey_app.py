@@ -39,13 +39,6 @@ def joyful_color_palette(n):
     while len(colors) < n:
         colors.append(f"hsl({random.randint(0,359)}, 65%, 70%)")
     return colors[:n]
-
-if st.sidebar.button('Reset Filters'):
-    selected_faculty = 'All'
-    selected_focus = 'All'
-    selected_activity = 'All'
-    selected_campus = 'All'
-    selected_tile = 'OpenStreetMap'
      
 def main():
     st.title("Interactive Map with Activities in NJ")
@@ -142,7 +135,7 @@ def main():
         faculties = [x.strip() for x in str(row['faculty_partners']).split(',')] if pd.notna(row['faculty_partners']) else []
         focuses = [x.strip() for x in str(row['focus_cleaned']).split(',')] if pd.notna(row['focus_cleaned']) else []
         campuses = [x.strip() for x in str(row['campus_partners']).split(',')] if pd.notna(row['campus_partners']) else []
-
+            
         # Filter check
         if ((faculty_selected == 'All' or faculty_selected in faculties) and
             (focus_selected == 'All' or focus_selected in focuses) and
@@ -157,6 +150,12 @@ def main():
                 <b>Contact:</b> <a href="mailto:{row['primary_contact_email']}">{row['primary_contact_email']}</a>
             </div>
             """
+        if st.sidebar.button('Reset Filters'):
+            selected_faculty = 'All'
+            selected_focus = 'All'
+            selected_activity = 'All'
+            selected_campus = 'All'
+            selected_tile = 'OpenStreetMap'
             folium.CircleMarker(
                 location=[lat, lon],
                 radius=7,
