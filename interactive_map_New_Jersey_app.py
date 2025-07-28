@@ -162,11 +162,10 @@ def main():
             ).add_to(marker_cluster)
             
     if st.sidebar.button('Reset Filters'):
-            selected_faculty = 'All'
-            selected_focus = 'All'
-            selected_activity = 'All'
-            selected_campus = 'All'
-            selected_tile = 'OpenStreetMap'        
+       faculty_selected = 'All'
+       focus_selected = 'All'
+       activity_selected = 'All'
+       campus_selected = 'All'     
 
     st_folium(m, width=900, height=700)
 
