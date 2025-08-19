@@ -176,11 +176,11 @@ marker_cluster = MarkerCluster().add_to(m)
 for _, row in filtered_points:
     popup_html = f"""
     <div style="width: 300px; font-size: 13px;">
-    <b>Activity:</b> <a href="{row['activity_url']}" target="_blank">{row['activity_name']}</a><br>
-    <b>Faculty:</b> {row['faculty_partners']}<br>
-    <b>Campus Partners:</b> {row['campus_partners']}<br>
-    <b>Community Partners:</b> {row['community_organizations']}<br>
-    <b>Contact:</b> <a href="mailto:{row['primary_contact_email']}">{row['primary_contact_email']}</a>
+    <b>Activity: </b> <a href="{row['activity_url']}" target="_blank">{row['activity_name']}</a><br>
+    <b>Faculty/Staff: </b> {row['faculty_partners']}<br>
+    <b>Campus Partners: </b> {row['campus_partners']}<br>
+    <b>Community Partners: </b> {row['community_organizations']}<br>
+    <b>Contact: </b> <a href="mailto:{row['primary_contact_email']}">{row['primary_contact_email']}</a>
     </div>
     """
     folium.CircleMarker(
