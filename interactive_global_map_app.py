@@ -54,7 +54,7 @@ def reset_filters():
     st.session_state.selected_tile = 'OpenStreetMap'
 
 st.title("Interactive Map of Activities")
-st.markdown("**- Count shows number of locations**")
+st.markdown("**- Count Shows Number of Activity Locations**")
 
 tile_options = {
     'OpenStreetMap': 'OpenStreetMap',
